@@ -63,11 +63,20 @@ export const getAdminSession = (ctx: MyContext): AdminSession => {
   return ctx.session.adminSession!;
 };
 
-export const resetSession = (ctx: MyContext) => {
-  // Reset session to initial state
+export const resetSession = async (ctx: MyContext) => {
   ctx.session = {};
+  const kv = await Deno.openKv();
+  let key: string | undefined;
+  if (ctx.chat?.id) {
+    key = String(ctx.chat.id);
+  } else if (ctx.from?.id) {
+    key = String(ctx.from.id);
+  }
+  if (key) {
+    await kv.delete(["sessions", key]);
+  }
 };
 
-sessionEvt.attach(({ ctx }) => {
-  resetSession(ctx);
+sessionEvt.attach(async ({ ctx }) => {
+  await resetSession(ctx);
 });

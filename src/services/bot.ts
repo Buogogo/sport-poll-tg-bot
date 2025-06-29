@@ -57,11 +57,20 @@ function createAdminComposer() {
   adminComposer.use(onlyAdmin());
   adminComposer.use(withSession());
 
-  // Use stateless config editing handler from utils
+  // Reset edit flag on any menu navigation
+  adminComposer.on("callback_query:data", async (ctx, next) => {
+    ctx.session.editTarget = undefined;
+    ctx.session.editContext = undefined;
+    await next();
+  });
+
+  // Menu middleware
+  adminComposer.use(mainMenu);
+
+  // Config edit handler
   adminComposer.on("message:text", createConfigEditHandler());
 
   adminComposer.use(inactivityMiddleware());
-  adminComposer.use(mainMenu);
   adminComposer.command("start", handleStart);
   adminComposer.command("reset", handleReset);
   return adminComposer;

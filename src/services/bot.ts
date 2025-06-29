@@ -7,14 +7,14 @@ import { loadEnvs } from "../constants/config.ts";
 import { handleReset, handleStart } from "../commands/admin-commands.ts";
 import { handleGroupText } from "../commands/group-commands.ts";
 import { onlyTargetGroup } from "../middleware/group.ts";
-import { conversations } from "https://deno.land/x/grammy_conversations@v2.1.0/mod.ts";
+import { conversations } from "@grammyjs/conversations";
 import { editFieldConv, mainMenu } from "../menus/admin-menu.ts";
 import * as pollService from "./poll-service.ts";
 import * as persistence from "./persistence.ts";
 import * as scheduler from "./scheduler.ts";
 import * as statusMessage from "./status-message.ts";
 import { inactivityMiddleware } from "../middleware/inactivity.ts";
-import { DenoKvAdapter } from "https://deno.land/x/grammy_storages/deno-kv/src/mod.ts";
+import { DenoKvAdapter } from "@grammyjs/storages";
 
 let botInstance: Bot<MyContext> | null = null;
 let configInstance: Config | null = null;

@@ -3,7 +3,7 @@ import { createConversation } from "@grammyjs/conversations";
 import type { Conversation } from "@grammyjs/conversations";
 import { MyContext } from "../middleware/session.ts";
 import { DAYS, MESSAGES } from "../constants/messages.ts";
-import { clearSchedule, getNextPollTime } from "../services/scheduler.ts";
+import { getNextPollTime } from "../services/scheduler.ts";
 import { UserFacingError } from "../constants/types.ts";
 import * as pollService from "../services/poll-service.ts";
 
@@ -78,16 +78,12 @@ async function getValidInput<T>(
 // Context setter map for extensibility
 const contextSetters: Record<
   string,
-  (target: string, value: string | number, ctx: MyContext) => Promise<void>
+  (target: string, value: string | number, ctx: MyContext) => void
 > = {
-  poll: async (target, value) =>
-    await pollService.setInstantPollConfig({ [target]: value }),
-  weekly: async (target, value) => {
-    await pollService.setWeeklyConfig({ [target]: value });
-    const config = pollService.getWeeklyConfig();
-    if (!config.enabled) {
-      clearSchedule();
-    }
+  poll: (target, value) =>
+    pollService.setInstantPollConfig({ [target]: value }),
+  weekly: (target, value) => {
+    pollService.setWeeklyConfig({ [target]: value });
   },
   // Add more contexts here as needed
 };
@@ -108,7 +104,7 @@ async function editFieldConversation(
   await ctx.reply(MESSAGES.FIELD_SAVED);
 }
 
-async function setFieldValue(
+function setFieldValue(
   context: string,
   target: string,
   value: string | number,
@@ -116,7 +112,7 @@ async function setFieldValue(
 ) {
   const setter = contextSetters[context];
   if (!setter) throw new Error(MESSAGES.UNKNOWN_CONTEXT(context));
-  await setter(target, value, ctx);
+  setter(target, value, ctx);
 }
 
 export const editFieldConv = createConversation(
@@ -141,10 +137,7 @@ const confirmPoll = async (ctx: MyContext) => {
 const toggleWeeklyStatus = async (ctx: MyContext) => {
   const config = pollService.getWeeklyConfig();
   const enabled = !!config.enabled;
-  await pollService.setWeeklyConfig({ enabled: !enabled });
-  if (enabled) {
-    clearSchedule();
-  }
+  pollService.setWeeklyConfig({ enabled: !enabled });
   await ctx.answerCallbackQuery(
     enabled ? MESSAGES.WEEKLY_DISABLED : MESSAGES.WEEKLY_ENABLED,
   );

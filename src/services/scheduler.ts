@@ -91,7 +91,7 @@ export function initializeSchedulerEventListeners() {
   });
 }
 
-// --- Deno.cron: schedule poll check every 10 minutes ---
+// --- Deno.cron: schedule poll check every minute ---
 Deno.cron("Check and trigger weekly poll", "*/10 * * * *", async () => {
   // Always load the latest config from KV
   const { weeklyConfig } = await persistence.loadAll();

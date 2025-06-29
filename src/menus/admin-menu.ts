@@ -1,7 +1,7 @@
 import { Menu } from "@grammyjs/menu";
 import { createConversation } from "@grammyjs/conversations";
 import type { Conversation } from "@grammyjs/conversations";
-import { MyContext, persistSession } from "../middleware/session.ts";
+import { MyContext } from "../middleware/session.ts";
 import { DAYS, MESSAGES } from "../constants/messages.ts";
 import { clearSchedule, getNextPollTime } from "../services/scheduler.ts";
 import { UserFacingError } from "../constants/types.ts";
@@ -92,10 +92,10 @@ const contextSetters: Record<
   // Add more contexts here as needed
 };
 
-const editFieldConversation = async (
+async function editFieldConversation(
   conversation: Conversation<MyContext>,
   ctx: MyContext,
-) => {
+) {
   const target = ctx.session.editTarget!;
   const context = ctx.session.editContext!;
   const fieldName = MESSAGES.FIELD_NAMES[target];
@@ -105,9 +105,8 @@ const editFieldConversation = async (
     (text) => validateField(target, text, ctx),
   );
   await setFieldValue(context, target, validatedValue, ctx);
-  await persistSession(ctx);
   await ctx.reply(MESSAGES.FIELD_SAVED);
-};
+}
 
 async function setFieldValue(
   context: string,
@@ -181,7 +180,6 @@ export const pollCreateMenu: Menu<MyContext> = new Menu<MyContext>(
     async (ctx: MyContext) => {
       ctx.session.editTarget = "question";
       ctx.session.editContext = "poll";
-      await persistSession(ctx);
       await ctx.conversation.enter("editField");
     },
   ).row()
@@ -193,7 +191,6 @@ export const pollCreateMenu: Menu<MyContext> = new Menu<MyContext>(
     async (ctx: MyContext) => {
       ctx.session.editTarget = "positiveOption";
       ctx.session.editContext = "poll";
-      await persistSession(ctx);
       await ctx.conversation.enter("editField");
     },
   ).row()
@@ -205,7 +202,6 @@ export const pollCreateMenu: Menu<MyContext> = new Menu<MyContext>(
     async (ctx: MyContext) => {
       ctx.session.editTarget = "negativeOption";
       ctx.session.editContext = "poll";
-      await persistSession(ctx);
       await ctx.conversation.enter("editField");
     },
   ).row()
@@ -217,7 +213,6 @@ export const pollCreateMenu: Menu<MyContext> = new Menu<MyContext>(
     async (ctx: MyContext) => {
       ctx.session.editTarget = "targetVotes";
       ctx.session.editContext = "poll";
-      await persistSession(ctx);
       await ctx.conversation.enter("editField");
     },
   ).row()
@@ -235,7 +230,6 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
     async (ctx: MyContext) => {
       ctx.session.editTarget = "question";
       ctx.session.editContext = "weekly";
-      await persistSession(ctx);
       await ctx.conversation.enter("editField");
     },
   ).row()
@@ -247,7 +241,6 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
     async (ctx: MyContext) => {
       ctx.session.editTarget = "positiveOption";
       ctx.session.editContext = "weekly";
-      await persistSession(ctx);
       await ctx.conversation.enter("editField");
     },
   ).row()
@@ -259,7 +252,6 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
     async (ctx: MyContext) => {
       ctx.session.editTarget = "negativeOption";
       ctx.session.editContext = "weekly";
-      await persistSession(ctx);
       await ctx.conversation.enter("editField");
     },
   ).row()
@@ -268,7 +260,6 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
     async (ctx: MyContext) => {
       ctx.session.editTarget = "targetVotes";
       ctx.session.editContext = "weekly";
-      await persistSession(ctx);
       await ctx.conversation.enter("editField");
     },
   ).row()
@@ -284,7 +275,6 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
     async (ctx: MyContext) => {
       ctx.session.editTarget = "startHour";
       ctx.session.editContext = "weekly";
-      await persistSession(ctx);
       await ctx.conversation.enter("editField");
     },
   ).row()
@@ -298,7 +288,6 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
   }, async (ctx: MyContext) => {
     ctx.session.editTarget = "randomWindowMinutes";
     ctx.session.editContext = "weekly";
-    await persistSession(ctx);
     await ctx.conversation.enter("editField");
   }).row()
   .text(() => {

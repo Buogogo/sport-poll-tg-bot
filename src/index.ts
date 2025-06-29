@@ -1,6 +1,6 @@
 import * as Sentry from "sentry";
 import { initializeBot } from "./services/bot.ts";
-import { initializeScheduler } from "./services/scheduler.ts";
+import { clearSchedule, initializeScheduler } from "./services/scheduler.ts";
 import * as pollService from "./services/poll-service.ts";
 import { logger } from "./utils/logger.ts";
 
@@ -14,6 +14,14 @@ const main = async () => {
     await pollService.loadPersistedData();
     await initializeScheduler();
     const { bot } = initializeBot();
+    const shutdown = () => {
+      logger.info("Shutting down gracefully...");
+      clearSchedule();
+      bot.stop();
+      Deno.exit(0);
+    };
+    Deno.addSignalListener("SIGINT", shutdown);
+    Deno.addSignalListener("SIGTERM", shutdown);
     await bot.start({
       onStart: (botInfo: { username: string }) => {
         logger.info(`Bot @${botInfo.username} started!`);

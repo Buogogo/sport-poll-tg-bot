@@ -56,30 +56,18 @@ export const cleanupOldSessions = async (): Promise<void> => {
   await kvAdapter.cleanupOldSessions();
 };
 
-export const getAdminSession = async (
-  ctx: MyContext,
-): Promise<AdminSession> => {
+export const getAdminSession = (ctx: MyContext): AdminSession => {
   if (!ctx.session.adminSession) {
     ctx.session.adminSession = { chatId: ctx.chat!.id };
-    await persistSession(ctx);
   }
   return ctx.session.adminSession!;
 };
 
-export const resetSession = async (ctx: MyContext) => {
+export const resetSession = (ctx: MyContext) => {
+  // Reset session to initial state
   ctx.session = {};
-  await persistSession(ctx);
 };
 
 sessionEvt.attach(({ ctx }) => {
   resetSession(ctx);
 });
-
-export async function persistSession(ctx: MyContext) {
-  const kv = await Deno.openKv();
-  // Use the same key logic as the adapter
-  const key = ctx.chat ? ctx.chat.id.toString() : undefined;
-  if (key) {
-    await kv.set(["sessions", key], ctx.session);
-  }
-}

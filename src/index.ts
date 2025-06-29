@@ -19,8 +19,8 @@ const main = async () => {
         logger.info(`Bot @${botInfo.username} started!`);
       },
     });
-  } catch (_error) {
-    Deno.exit(1);
+  } catch (err) {
+    Sentry.captureException(err);
   }
 };
 

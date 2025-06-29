@@ -56,8 +56,8 @@ function createAdminComposer() {
   const adminComposer = new Composer<MyContext>();
   adminComposer.use(onlyAdmin());
   adminComposer.use(withSession());
-  adminComposer.use(inactivityMiddleware());
   adminComposer.use(conversations());
+  adminComposer.use(inactivityMiddleware());
   adminComposer.use(editFieldConv);
   adminComposer.use(mainMenu);
   adminComposer.command("start", handleStart);

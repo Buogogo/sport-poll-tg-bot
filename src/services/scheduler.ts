@@ -18,12 +18,14 @@ export function getNextPollTime(): Date | null {
 }
 
 export function calculateNextPollTime(): Date {
-  const { randomWindowMinutes, dayOfWeek, startHour } = pollService
-    .getWeeklyConfig();
+  const { dayOfWeek, startHour } = pollService.getWeeklyConfig();
   const now = dayjs().tz("Europe/Kiev");
-  const minute = Math.floor(Math.random() * randomWindowMinutes);
-  let poll = now.day(dayOfWeek).hour(startHour).minute(minute)
-    .second(0).millisecond(0);
+  // Pick a random 10-minute slot
+  const tenMinuteSlots = [0, 10, 20, 30, 40, 50];
+  const minute =
+    tenMinuteSlots[Math.floor(Math.random() * tenMinuteSlots.length)];
+  let poll = now.day(dayOfWeek).hour(startHour).minute(minute).second(0)
+    .millisecond(0);
   if (poll.isBefore(now)) poll = poll.add(1, "week");
   return poll.utc().toDate();
 }
@@ -59,7 +61,6 @@ export async function initializeScheduler(): Promise<void> {
   }
   let shouldPost = false;
   if (!config.nextPollTime) {
-    // No scheduled time, schedule for the future
     const nextTime = calculateNextPollTime();
     config.nextPollTime = nextTime.toISOString();
     schedulerEvt.post({ type: "poll_scheduled", nextPollTime: nextTime });
@@ -93,20 +94,24 @@ export function initializeSchedulerEventListeners() {
 
 // --- Deno.cron: schedule poll check every minute ---
 Deno.cron("Check and trigger weekly poll", "*/10 * * * *", async () => {
-  // Always load the latest config from KV
   const { weeklyConfig } = await persistence.loadAll();
   if (!weeklyConfig.enabled || !weeklyConfig.nextPollTime) return;
   const now = new Date();
   const scheduled = new Date(weeklyConfig.nextPollTime);
-  if (now >= scheduled) {
+  // Only trigger if now matches scheduled time exactly (to the minute)
+  if (
+    now.getUTCFullYear() === scheduled.getUTCFullYear() &&
+    now.getUTCMonth() === scheduled.getUTCMonth() &&
+    now.getUTCDate() === scheduled.getUTCDate() &&
+    now.getUTCHours() === scheduled.getUTCHours() &&
+    now.getUTCMinutes() === scheduled.getUTCMinutes()
+  ) {
     logger.info("[cron] Time to post the weekly poll!");
     schedulerEvt.post({ type: "poll_triggered" });
     await createOrReplaceWeeklyPoll();
-    // Calculate and persist next time
     const nextTime = calculateNextPollTime();
     weeklyConfig.nextPollTime = nextTime.toISOString();
     schedulerEvt.post({ type: "poll_scheduled", nextPollTime: nextTime });
-    // Persist updated config to KV
     const kv = await Deno.openKv();
     await kv.set(["weekly-config"], weeklyConfig);
   }

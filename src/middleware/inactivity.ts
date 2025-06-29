@@ -8,10 +8,8 @@ export const inactivityMiddleware =
   () => async (ctx: MyContext, next: () => Promise<void>) => {
     const now = Date.now();
     const lastActive = ctx.session.lastActiveAt ?? 0;
-
     if (lastActive && now - lastActive > INACTIVITY_TIMEOUT_MS) {
-      // Inactive: exit conversation and trigger session reset via event
-      await ctx.conversation.exit();
+      // Inactive: trigger session reset via event
       sessionEvt.post({ type: "session_reset", ctx });
       await ctx.reply(MESSAGES.INACTIVITY_SESSION_RESET, {
         reply_markup: undefined,

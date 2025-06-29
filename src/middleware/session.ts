@@ -20,56 +20,40 @@ export type MyContext =
   & MenuFlavor
   & ConversationFlavor;
 
-class FileAdapter<T> implements StorageAdapter<T> {
-  constructor(private dirName: string) {}
+class DenoKvAdapter<T> implements StorageAdapter<T> {
+  private prefix = ["sessions"];
+
+  private key(key: string): Deno.KvKey {
+    return [...this.prefix, key];
+  }
 
   async read(key: string): Promise<T | undefined> {
-    await Deno.mkdir(this.dirName, { recursive: true });
-    return JSON.parse(
-      await Deno.readTextFile(
-        `${this.dirName}/${this.sanitizeKey(key)}.json`,
-      ),
-    );
+    const kv = await Deno.openKv();
+    const res = await kv.get<T>(this.key(key));
+    return res.value === null ? undefined : res.value;
   }
 
   async write(key: string, value: T): Promise<void> {
-    await Deno.mkdir(this.dirName, { recursive: true });
-    await Deno.writeTextFile(
-      `${this.dirName}/${this.sanitizeKey(key)}.json`,
-      JSON.stringify(value, null, 2),
-    );
+    const kv = await Deno.openKv();
+    await kv.set(this.key(key), value);
   }
 
   async delete(key: string): Promise<void> {
-    await Deno.remove(`${this.dirName}/${this.sanitizeKey(key)}.json`);
+    const kv = await Deno.openKv();
+    await kv.delete(this.key(key));
   }
 
-  async cleanupOldSessions(): Promise<void> {
-    const sessionsDir = Deno.readDir(this.dirName);
-    const now = Date.now();
-    const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
-    for await (const entry of sessionsDir) {
-      if (entry.isFile && entry.name.endsWith(".json")) {
-        const filePath = `${this.dirName}/${entry.name}`;
-        const stat = await Deno.stat(filePath);
-        if (now - stat.mtime!.getTime() > maxAge) {
-          await Deno.remove(filePath);
-        }
-      }
-    }
-  }
-
-  private sanitizeKey(key: string): string {
-    return key.replace(/[^a-zA-Z0-9\-_]/g, "_");
-  }
+  // No-op for cleanupOldSessions; Deno KV does not support TTL natively yet
+  async cleanupOldSessions(): Promise<void> {}
 }
 
-const fileAdapter = new FileAdapter<SessionData>("sessions");
+const kvAdapter = new DenoKvAdapter<SessionData>();
 
-export const withSession = () => session({ initial: (): SessionData => ({}) });
+export const withSession = () =>
+  session({ initial: (): SessionData => ({}), storage: kvAdapter });
 
 export const cleanupOldSessions = async (): Promise<void> => {
-  await fileAdapter.cleanupOldSessions();
+  await kvAdapter.cleanupOldSessions();
 };
 
 export const getAdminSession = (ctx: MyContext): AdminSession => {

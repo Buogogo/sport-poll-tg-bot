@@ -33,3 +33,20 @@ const main = async () => {
 };
 
 if (import.meta.main) main().catch(console.error);
+
+const { bot } = initializeBot();
+
+Deno.serve(async (req) => {
+  const url = new URL(req.url);
+  if (url.pathname === "/webhook" && req.method === "POST") {
+    await pollService.loadPersistedData();
+    const update = await req.json();
+    try {
+      await bot.handleUpdate(update);
+      return new Response("OK");
+    } catch {
+      return new Response("Error", { status: 500 });
+    }
+  }
+  return new Response("OK");
+});

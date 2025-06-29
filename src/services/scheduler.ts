@@ -7,13 +7,8 @@ import * as pollService from "./poll-service.ts";
 import { schedulerEvt } from "../events/events.ts";
 import { logger } from "../utils/logger.ts";
 
-let intervalId: number | null = null;
-
 export function clearSchedule(): void {
-  if (intervalId !== null) {
-    clearInterval(intervalId);
-    intervalId = null;
-  }
+  // No-op: Deno.cron is defined at the top level and cannot be cleared dynamically
 }
 
 export function getNextPollTime(): Date | null {
@@ -30,37 +25,6 @@ export function calculateNextPollTime(): Date {
     .second(0).millisecond(0);
   if (poll.isBefore(now)) poll = poll.add(1, "week");
   return poll.utc().toDate();
-}
-
-export function schedulePoll(): void {
-  clearSchedule();
-  const config = pollService.getWeeklyConfig();
-  if (!config.enabled) {
-    logger.info("Weekly poll is disabled, not scheduling.");
-    return;
-  }
-  if (!config.nextPollTime) {
-    // First time or after enabling, calculate and persist next time
-    const nextTime = calculateNextPollTime();
-    config.nextPollTime = nextTime.toISOString();
-    schedulerEvt.post({ type: "poll_scheduled", nextPollTime: nextTime });
-  }
-  intervalId = setInterval(async () => {
-    const { nextPollTime, enabled } = pollService.getWeeklyConfig();
-    if (!enabled || !nextPollTime) return;
-    const now = new Date();
-    const scheduled = new Date(nextPollTime);
-    if (now >= scheduled) {
-      logger.info("Time to post the weekly poll!");
-      schedulerEvt.post({ type: "poll_triggered" });
-      await createOrReplaceWeeklyPoll();
-      // Calculate and persist next time
-      const nextTime = calculateNextPollTime();
-      const config = pollService.getWeeklyConfig();
-      config.nextPollTime = nextTime.toISOString();
-      schedulerEvt.post({ type: "poll_scheduled", nextPollTime: nextTime });
-    }
-  }, 60 * 1000); // Check every minute
 }
 
 function logNextPollTime(time: Date) {
@@ -90,7 +54,6 @@ export async function createOrReplaceWeeklyPoll(): Promise<void> {
 export async function initializeScheduler(): Promise<void> {
   const config = pollService.getWeeklyConfig();
   if (!config.enabled) {
-    clearSchedule();
     return;
   }
   let shouldPost = false;
@@ -110,10 +73,10 @@ export async function initializeScheduler(): Promise<void> {
     schedulerEvt.post({ type: "poll_triggered" });
     await createOrReplaceWeeklyPoll();
     const nextTime = calculateNextPollTime();
+    const config = pollService.getWeeklyConfig();
     config.nextPollTime = nextTime.toISOString();
     schedulerEvt.post({ type: "poll_scheduled", nextPollTime: nextTime });
   }
-  schedulePoll();
 }
 
 // Event listener for scheduler events
@@ -126,3 +89,20 @@ export function initializeSchedulerEventListeners() {
     }
   });
 }
+
+// --- Deno.cron: schedule poll check every minute ---
+Deno.cron("Check and trigger weekly poll", "* * * * *", async () => {
+  const config = pollService.getWeeklyConfig();
+  if (!config.enabled || !config.nextPollTime) return;
+  const now = new Date();
+  const scheduled = new Date(config.nextPollTime);
+  if (now >= scheduled) {
+    logger.info("[cron] Time to post the weekly poll!");
+    schedulerEvt.post({ type: "poll_triggered" });
+    await createOrReplaceWeeklyPoll();
+    // Calculate and persist next time
+    const nextTime = calculateNextPollTime();
+    config.nextPollTime = nextTime.toISOString();
+    schedulerEvt.post({ type: "poll_scheduled", nextPollTime: nextTime });
+  }
+});

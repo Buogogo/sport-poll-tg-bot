@@ -13,7 +13,8 @@
     "@grammyjs/menu": "https://deno.land/x/grammy_menu@v1.2.2/mod.ts",
     "@grammyjs/conversations": "https://deno.land/x/grammy_conversations@v1.2.0/mod.ts",
     "sentry": "https://deno.land/x/sentry@8.55.0/index.mjs",
-    "evt": "https://deno.land/x/evt@v2.4.0/mod.ts"
+    "evt": "https://deno.land/x/evt@v2.4.0/mod.ts",
+    "https://deno.land/x/grammy_storages/deno-kv/src/mod.ts": "https://deno.land/x/grammy_storages@v1.3.0/deno-kv/src/mod.ts"
   },
   "compilerOptions": {
     "strict": true,

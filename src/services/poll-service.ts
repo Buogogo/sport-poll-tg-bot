@@ -76,8 +76,6 @@ export function setWeeklyConfig(
   updates: Partial<WeeklyConfig>,
 ): void {
   Object.assign(weeklyConfig, updates);
-
-  // If enabling, or if any schedule-related field is updated, recalculate nextPollTime
   if (
     (typeof updates.enabled !== "undefined" && updates.enabled) ||
     typeof updates.startHour !== "undefined" ||
@@ -86,14 +84,7 @@ export function setWeeklyConfig(
   ) {
     weeklyConfig.nextPollTime = scheduler.calculateNextPollTime().toISOString();
   }
-
   configUpdateEvt.post({ type: "weekly_config_updated", config: weeklyConfig });
-
-  if (weeklyConfig.enabled) {
-    // scheduler.schedulePoll(); // Removed, handled by cron
-  } else {
-    // Removed scheduler.clearSchedule();, handled by cron
-  }
 }
 
 export function setInstantPollConfig(

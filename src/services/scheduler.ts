@@ -6,6 +6,7 @@ dayjs.extend(timezone);
 import * as pollService from "./poll-service.ts";
 import { schedulerEvt } from "../events/events.ts";
 import { logger } from "../utils/logger.ts";
+import * as persistence from "./persistence.ts";
 
 export function clearSchedule(): void {
   // No-op: Deno.cron is defined at the top level and cannot be cleared dynamically
@@ -92,17 +93,21 @@ export function initializeSchedulerEventListeners() {
 
 // --- Deno.cron: schedule poll check every minute ---
 Deno.cron("Check and trigger weekly poll", "* * * * *", async () => {
-  const config = pollService.getWeeklyConfig();
-  if (!config.enabled || !config.nextPollTime) return;
+  // Always load the latest config from KV
+  const { weeklyConfig } = await persistence.loadAll();
+  if (!weeklyConfig.enabled || !weeklyConfig.nextPollTime) return;
   const now = new Date();
-  const scheduled = new Date(config.nextPollTime);
+  const scheduled = new Date(weeklyConfig.nextPollTime);
   if (now >= scheduled) {
     logger.info("[cron] Time to post the weekly poll!");
     schedulerEvt.post({ type: "poll_triggered" });
     await createOrReplaceWeeklyPoll();
     // Calculate and persist next time
     const nextTime = calculateNextPollTime();
-    config.nextPollTime = nextTime.toISOString();
+    weeklyConfig.nextPollTime = nextTime.toISOString();
     schedulerEvt.post({ type: "poll_scheduled", nextPollTime: nextTime });
+    // Persist updated config to KV
+    const kv = await Deno.openKv();
+    await kv.set(["weekly-config"], weeklyConfig);
   }
 });

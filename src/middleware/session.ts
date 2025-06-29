@@ -1,6 +1,5 @@
 import { Context, session, SessionFlavor, StorageAdapter } from "grammy";
 import { MenuFlavor } from "@grammyjs/menu";
-import { ConversationFlavor } from "@grammyjs/conversations";
 import { AdminSession } from "../constants/types.ts";
 import { sessionEvt } from "../events/events.ts";
 
@@ -17,8 +16,7 @@ export interface SessionData {
 export type MyContext =
   & Context
   & SessionFlavor<SessionData>
-  & MenuFlavor
-  & ConversationFlavor;
+  & MenuFlavor;
 
 class DenoKvAdapter<T> implements StorageAdapter<T> {
   private prefix = ["sessions"];

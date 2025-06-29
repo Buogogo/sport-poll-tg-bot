@@ -1,124 +1,8 @@
 import { Menu } from "@grammyjs/menu";
-import { createConversation } from "@grammyjs/conversations";
-import type { Conversation } from "@grammyjs/conversations";
 import { MyContext } from "../middleware/session.ts";
 import { DAYS, MESSAGES } from "../constants/messages.ts";
 import { getNextPollTime } from "../services/scheduler.ts";
-import { UserFacingError } from "../constants/types.ts";
 import * as pollService from "../services/poll-service.ts";
-
-const validateNumericField = (
-  target: string,
-  value: string,
-  ctx: MyContext,
-): number => {
-  const parsedValue = parseInt(value, 10);
-  switch (target) {
-    case "targetVotes":
-      if (isNaN(parsedValue) || parsedValue < 1 || parsedValue > 9) {
-        throw new UserFacingError(ctx, MESSAGES.INVALID_TARGET_VOTES);
-      }
-      break;
-    case "startHour":
-      if (isNaN(parsedValue) || parsedValue < 0 || parsedValue > 23) {
-        throw new UserFacingError(ctx, MESSAGES.INVALID_START_HOUR);
-      }
-      break;
-    case "randomWindowMinutes":
-      if (isNaN(parsedValue) || parsedValue < 0 || parsedValue > 59) {
-        throw new UserFacingError(ctx, MESSAGES.INVALID_RANDOM_WINDOW);
-      }
-      break;
-    default:
-      throw new UserFacingError(ctx, MESSAGES.UNKNOWN_NUMERIC_FIELD(target));
-  }
-  return parsedValue;
-};
-
-const validateStringField = (
-  target: string,
-  value: string,
-  ctx: MyContext,
-): string => {
-  if (target === "question" && (value.length < 3 || value.length > 300)) {
-    throw new UserFacingError(ctx, MESSAGES.INVALID_QUESTION_LENGTH);
-  }
-  if (
-    (target === "positiveOption" || target === "negativeOption") &&
-    (value.length < 1 || value.length > 100)
-  ) {
-    throw new UserFacingError(ctx, MESSAGES.INVALID_OPTION_LENGTH);
-  }
-  return value;
-};
-
-const validateField = (
-  target: string,
-  value: string,
-  ctx: MyContext,
-): string | number => {
-  const numericFields = ["targetVotes", "startHour", "randomWindowMinutes"];
-  if (numericFields.includes(target)) {
-    return validateNumericField(target, value, ctx);
-  }
-  return validateStringField(target, value, ctx);
-};
-
-// Reusable helper for conversational retries
-async function getValidInput<T>(
-  conversation: Conversation<MyContext>,
-  validate: (text: string) => T,
-): Promise<T> {
-  while (true) {
-    const { message } = await conversation.wait();
-    return validate(message!.text!.trim());
-  }
-}
-
-// Context setter map for extensibility
-const contextSetters: Record<
-  string,
-  (target: string, value: string | number, ctx: MyContext) => void
-> = {
-  poll: (target, value) =>
-    pollService.setInstantPollConfig({ [target]: value }),
-  weekly: (target, value) => {
-    pollService.setWeeklyConfig({ [target]: value });
-  },
-  // Add more contexts here as needed
-};
-
-async function editFieldConversation(
-  conversation: Conversation<MyContext>,
-  ctx: MyContext,
-) {
-  const target = ctx.session.editTarget!;
-  const context = ctx.session.editContext!;
-  const fieldName = MESSAGES.FIELD_NAMES[target];
-  await ctx.reply(MESSAGES.ENTER_FIELD_PROMPT(fieldName));
-  const validatedValue = await getValidInput(
-    conversation,
-    (text) => validateField(target, text, ctx),
-  );
-  await setFieldValue(context, target, validatedValue, ctx);
-  await ctx.reply(MESSAGES.FIELD_SAVED);
-}
-
-function setFieldValue(
-  context: string,
-  target: string,
-  value: string | number,
-  ctx: MyContext,
-) {
-  const setter = contextSetters[context];
-  if (!setter) throw new Error(MESSAGES.UNKNOWN_CONTEXT(context));
-  setter(target, value, ctx);
-}
-
-export const editFieldConv = createConversation(
-  editFieldConversation,
-  "editField",
-);
 
 const closePoll = async (ctx: MyContext) => {
   const result = pollService.closePollLogic();
@@ -173,7 +57,9 @@ export const pollCreateMenu: Menu<MyContext> = new Menu<MyContext>(
     async (ctx: MyContext) => {
       ctx.session.editTarget = "question";
       ctx.session.editContext = "poll";
-      await ctx.conversation.enter("editField");
+      await ctx.reply(
+        MESSAGES.ENTER_FIELD_PROMPT(MESSAGES.FIELD_NAMES["question"]),
+      );
     },
   ).row()
   .text(
@@ -184,7 +70,9 @@ export const pollCreateMenu: Menu<MyContext> = new Menu<MyContext>(
     async (ctx: MyContext) => {
       ctx.session.editTarget = "positiveOption";
       ctx.session.editContext = "poll";
-      await ctx.conversation.enter("editField");
+      await ctx.reply(
+        MESSAGES.ENTER_FIELD_PROMPT(MESSAGES.FIELD_NAMES["positiveOption"]),
+      );
     },
   ).row()
   .text(
@@ -195,7 +83,9 @@ export const pollCreateMenu: Menu<MyContext> = new Menu<MyContext>(
     async (ctx: MyContext) => {
       ctx.session.editTarget = "negativeOption";
       ctx.session.editContext = "poll";
-      await ctx.conversation.enter("editField");
+      await ctx.reply(
+        MESSAGES.ENTER_FIELD_PROMPT(MESSAGES.FIELD_NAMES["negativeOption"]),
+      );
     },
   ).row()
   .text(
@@ -206,7 +96,9 @@ export const pollCreateMenu: Menu<MyContext> = new Menu<MyContext>(
     async (ctx: MyContext) => {
       ctx.session.editTarget = "targetVotes";
       ctx.session.editContext = "poll";
-      await ctx.conversation.enter("editField");
+      await ctx.reply(
+        MESSAGES.ENTER_FIELD_PROMPT(MESSAGES.FIELD_NAMES["targetVotes"]),
+      );
     },
   ).row()
   .text(MESSAGES.MENU_REFRESH, (ctx: MyContext) => {
@@ -223,7 +115,9 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
     async (ctx: MyContext) => {
       ctx.session.editTarget = "question";
       ctx.session.editContext = "weekly";
-      await ctx.conversation.enter("editField");
+      await ctx.reply(
+        MESSAGES.ENTER_FIELD_PROMPT(MESSAGES.FIELD_NAMES["question"]),
+      );
     },
   ).row()
   .text(
@@ -234,7 +128,9 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
     async (ctx: MyContext) => {
       ctx.session.editTarget = "positiveOption";
       ctx.session.editContext = "weekly";
-      await ctx.conversation.enter("editField");
+      await ctx.reply(
+        MESSAGES.ENTER_FIELD_PROMPT(MESSAGES.FIELD_NAMES["positiveOption"]),
+      );
     },
   ).row()
   .text(
@@ -245,7 +141,9 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
     async (ctx: MyContext) => {
       ctx.session.editTarget = "negativeOption";
       ctx.session.editContext = "weekly";
-      await ctx.conversation.enter("editField");
+      await ctx.reply(
+        MESSAGES.ENTER_FIELD_PROMPT(MESSAGES.FIELD_NAMES["negativeOption"]),
+      );
     },
   ).row()
   .text(
@@ -253,7 +151,9 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
     async (ctx: MyContext) => {
       ctx.session.editTarget = "targetVotes";
       ctx.session.editContext = "weekly";
-      await ctx.conversation.enter("editField");
+      await ctx.reply(
+        MESSAGES.ENTER_FIELD_PROMPT(MESSAGES.FIELD_NAMES["targetVotes"]),
+      );
     },
   ).row()
   .text(
@@ -268,7 +168,9 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
     async (ctx: MyContext) => {
       ctx.session.editTarget = "startHour";
       ctx.session.editContext = "weekly";
-      await ctx.conversation.enter("editField");
+      await ctx.reply(
+        MESSAGES.ENTER_FIELD_PROMPT(MESSAGES.FIELD_NAMES["startHour"]),
+      );
     },
   ).row()
   .text(() => {
@@ -281,7 +183,9 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
   }, async (ctx: MyContext) => {
     ctx.session.editTarget = "randomWindowMinutes";
     ctx.session.editContext = "weekly";
-    await ctx.conversation.enter("editField");
+    await ctx.reply(
+      MESSAGES.ENTER_FIELD_PROMPT(MESSAGES.FIELD_NAMES["randomWindowMinutes"]),
+    );
   }).row()
   .text(() => {
     const config = pollService.getWeeklyConfig();
@@ -301,16 +205,19 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
 
 export const weeklySettingsMenu = weeklySettingsMenuInst;
 
-export let daySelectorMenu = new Menu<MyContext>("day-selector");
-Object.entries(DAYS).forEach(([index, day]) => {
-  daySelectorMenu = daySelectorMenu.text(day, daySelection(parseInt(index)))
-    .row();
-});
-daySelectorMenu = daySelectorMenu.text(
-  MESSAGES.MENU_BACK,
-  (ctx: MyContext) => ctx.menu.nav("weekly-settings"),
-);
+export const daySelectorMenu = (() => {
+  let menu = new Menu<MyContext>("day-selector");
+  Object.entries(DAYS).forEach(([index, day]) => {
+    menu = menu.text(day, daySelection(parseInt(index))).row();
+  });
+  menu = menu.text(
+    MESSAGES.MENU_BACK,
+    (ctx: MyContext) => ctx.menu.nav("weekly-settings"),
+  );
+  return menu;
+})();
+
+weeklySettingsMenuInst.register(daySelectorMenu);
 
 mainMenu.register(pollCreateMenu);
 mainMenu.register(weeklySettingsMenuInst);
-weeklySettingsMenuInst.register(daySelectorMenu);

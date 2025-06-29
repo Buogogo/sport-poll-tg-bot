@@ -7,12 +7,13 @@ import { loadEnvs } from "../constants/config.ts";
 import { handleReset, handleStart } from "../commands/admin-commands.ts";
 import { handleGroupText } from "../commands/group-commands.ts";
 import { onlyTargetGroup } from "../middleware/group.ts";
-import { editFieldConv, mainMenu } from "../menus/admin-menu.ts";
+import { mainMenu } from "../menus/admin-menu.ts";
 import * as pollService from "./poll-service.ts";
 import * as persistence from "./persistence.ts";
 import * as scheduler from "./scheduler.ts";
 import * as statusMessage from "./status-message.ts";
 import { inactivityMiddleware } from "../middleware/inactivity.ts";
+import { createConfigEditHandler } from "../utils/convo-handler.ts";
 
 let botInstance: Bot<MyContext> | null = null;
 let configInstance: Config | null = null;
@@ -55,8 +56,11 @@ function createAdminComposer() {
   const adminComposer = new Composer<MyContext>();
   adminComposer.use(onlyAdmin());
   adminComposer.use(withSession());
+
+  // Use stateless config editing handler from utils
+  adminComposer.on("message:text", createConfigEditHandler());
+
   adminComposer.use(inactivityMiddleware());
-  adminComposer.use(editFieldConv);
   adminComposer.use(mainMenu);
   adminComposer.command("start", handleStart);
   adminComposer.command("reset", handleReset);

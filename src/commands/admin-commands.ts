@@ -13,8 +13,6 @@ export async function handleStart(ctx: MyContext) {
 }
 
 export async function handleReset(ctx: MyContext) {
-  // Exit all active conversations for this user
-  await ctx.conversation.exit();
   // Cleanly reset session
   resetSession(ctx);
   // Show main menu or confirmation

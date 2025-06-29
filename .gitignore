@@ -1,0 +1,6 @@
+.env
+.env.dev
+.env.prod
+.vscode/
+data/
+infra/

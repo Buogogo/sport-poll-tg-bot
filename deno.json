@@ -1,0 +1,22 @@
+{
+  "tasks": {
+    "start": "deno run --allow-net --allow-env --allow-read --allow-write --allow-import --env-file=.env src/index.ts",
+    "dev": "deno run --allow-net --allow-env --allow-read --allow-write --allow-import --env-file=.env.dev --watch src/index.ts",
+    "check": "deno check --allow-import src/index.ts",
+    "test": "deno test --allow-read --allow-write --allow-import tests/utils.test.ts"
+  },
+  "imports": {
+    "@grammyjs/router": "npm:@grammyjs/router@^2.0.0",
+    "dayjs": "npm:dayjs",
+    "grammy": "https://deno.land/x/grammy@v1.36.3/mod.ts",
+    "@grammyjs/menu": "https://deno.land/x/grammy_menu@v1.2.2/mod.ts",
+    "@grammyjs/conversations": "https://deno.land/x/grammy_conversations@v1.2.0/mod.ts",
+    "sentry": "https://deno.land/x/sentry@8.55.0/index.mjs",
+    "evt": "https://deno.land/x/evt@v2.4.0/mod.ts"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true
+  }
+}

@@ -3,11 +3,7 @@ import { createConversation } from "@grammyjs/conversations";
 import type { Conversation } from "@grammyjs/conversations";
 import { MyContext } from "../middleware/session.ts";
 import { DAYS, MESSAGES } from "../constants/messages.ts";
-import {
-  clearSchedule,
-  getNextPollTime,
-  schedulePoll,
-} from "../services/scheduler.ts";
+import { clearSchedule, getNextPollTime } from "../services/scheduler.ts";
 import { UserFacingError } from "../constants/types.ts";
 import * as pollService from "../services/poll-service.ts";
 
@@ -89,9 +85,7 @@ const contextSetters: Record<
   weekly: async (target, value) => {
     await pollService.setWeeklyConfig({ [target]: value });
     const config = pollService.getWeeklyConfig();
-    if (config.enabled) {
-      schedulePoll();
-    } else {
+    if (!config.enabled) {
       clearSchedule();
     }
   },
@@ -148,9 +142,7 @@ const toggleWeeklyStatus = async (ctx: MyContext) => {
   const config = pollService.getWeeklyConfig();
   const enabled = !!config.enabled;
   await pollService.setWeeklyConfig({ enabled: !enabled });
-  if (!enabled) {
-    schedulePoll();
-  } else {
+  if (enabled) {
     clearSchedule();
   }
   await ctx.answerCallbackQuery(
@@ -161,7 +153,6 @@ const toggleWeeklyStatus = async (ctx: MyContext) => {
 
 const daySelection = (dayIndex: number) => async (ctx: MyContext) => {
   pollService.setWeeklyConfig({ dayOfWeek: dayIndex });
-  schedulePoll();
   await ctx.answerCallbackQuery(MESSAGES.DAY_SAVED);
   if (ctx.menu) {
     ctx.menu.nav("weekly-settings");

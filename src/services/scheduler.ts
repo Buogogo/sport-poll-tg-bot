@@ -8,10 +8,6 @@ import { schedulerEvt } from "../events/events.ts";
 import { logger } from "../utils/logger.ts";
 import * as persistence from "./persistence.ts";
 
-export function clearSchedule(): void {
-  // No-op: Deno.cron is defined at the top level and cannot be cleared dynamically
-}
-
 export function getNextPollTime(): Date | null {
   const { nextPollTime } = pollService.getWeeklyConfig();
   return nextPollTime ? new Date(nextPollTime) : null;

@@ -90,9 +90,9 @@ export function setWeeklyConfig(
   configUpdateEvt.post({ type: "weekly_config_updated", config: weeklyConfig });
 
   if (weeklyConfig.enabled) {
-    scheduler.schedulePoll();
+    // scheduler.schedulePoll(); // Removed, handled by cron
   } else {
-    scheduler.clearSchedule();
+    // Removed scheduler.clearSchedule();, handled by cron
   }
 }
 

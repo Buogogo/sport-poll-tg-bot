@@ -247,8 +247,8 @@ export async function addVotesBulk(
   if (!pollState.isActive) {
     throw new UserFacingError(ctx, MESSAGES.NO_ACTIVE_POLL);
   }
-  const remaining = pollState.targetVotes -
-    pollState.votes.filter((v) => v.optionId === 0).length;
+  const currentVotes = pollState.votes.filter((v) => v.optionId === 0).length;
+  const remaining = pollState.targetVotes - currentVotes;
   let votes: Array<Vote> = [];
   if (names && names.length) {
     votes = names.map((name) =>
@@ -284,8 +284,11 @@ export async function addVotesBulk(
   if (votes.length > remaining) {
     return MESSAGES.TOO_MANY_VOTES(votes.length, remaining);
   }
+  // Add all votes at once
+  pollState.votes.push(...votes);
+  await setPollState(pollState);
+  // Optionally, post a single event for the batch (or keep per-vote for compatibility)
   for (const v of votes) {
-    pollState.votes.push(v);
     pollVoteEvt.post({
       type: "vote_added",
       vote: v,
@@ -293,16 +296,10 @@ export async function addVotesBulk(
       userName: v.requesterName,
     });
   }
-  await setPollState(pollState);
   // Check for completion and post event if needed
-  const updatedStateBulk = await getPollState();
-  const currentVotesBulk =
-    updatedStateBulk.votes.filter((v) => v.optionId === 0).length;
-  if (
-    updatedStateBulk.isActive &&
-    currentVotesBulk >= updatedStateBulk.targetVotes
-  ) {
-    pollStateEvt.post({ type: "poll_completed", pollState: updatedStateBulk });
+  const newVotes = pollState.votes.filter((v) => v.optionId === 0).length;
+  if (pollState.isActive && newVotes >= pollState.targetVotes) {
+    pollStateEvt.post({ type: "poll_completed", pollState });
   }
 }
 

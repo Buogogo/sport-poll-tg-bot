@@ -38,7 +38,7 @@ export const DEFAULT_WEEKLY_CONFIG: WeeklyConfig = {
   targetVotes: 12,
   dayOfWeek: 4, // 1=Monday, 7=Sunday
   startHour: 13,
-  randomWindowMinutes: 60,
+  randomWindowMinutes: 59,
 };
 
 export const DEFAULT_INSTANT_POLL_CONFIG: InstantPollConfig = {

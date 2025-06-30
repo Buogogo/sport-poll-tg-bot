@@ -1,7 +1,6 @@
 import { Context, session, SessionFlavor, StorageAdapter } from "grammy";
 import { MenuFlavor } from "@grammyjs/menu";
 import { AdminSession } from "../constants/types.ts";
-import { sessionEvt } from "../events/events.ts";
 
 export interface SessionData {
   adminSession?: AdminSession;
@@ -75,6 +74,16 @@ export const resetSession = async (ctx: MyContext) => {
   }
 };
 
-sessionEvt.attach(async ({ ctx }) => {
-  await resetSession(ctx);
-});
+export const clearAllSessions = async (): Promise<void> => {
+  const kv = await Deno.openKv();
+  for await (const entry of kv.list({ prefix: ["sessions"] })) {
+    await kv.delete(entry.key);
+  }
+};
+
+export const clearAllPersistentData = async (): Promise<void> => {
+  const kv = await Deno.openKv();
+  for await (const entry of kv.list({ prefix: [] })) {
+    await kv.delete(entry.key);
+  }
+};

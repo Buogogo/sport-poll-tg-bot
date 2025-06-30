@@ -1,10 +1,14 @@
-import { Bot, Composer } from "https://deno.land/x/grammy@v1.36.3/mod.ts";
+import { Bot, Composer } from "grammy";
 import { MyContext, withSession } from "../middleware/session.ts";
 import { onlyAdmin } from "../middleware/admin.ts";
 import { errorHandler } from "../middleware/error.ts";
 import { Config } from "../constants/types.ts";
 import { loadEnvs } from "../constants/config.ts";
-import { handleReset, handleStart } from "../commands/admin-commands.ts";
+import {
+  handleReboot,
+  handleReset,
+  handleStart,
+} from "../commands/admin-commands.ts";
 import { handleGroupText } from "../commands/group-commands.ts";
 import { onlyTargetGroup } from "../middleware/group.ts";
 import { mainMenu } from "../menus/admin-menu.ts";
@@ -12,7 +16,6 @@ import * as pollService from "./poll-service.ts";
 import * as persistence from "./persistence.ts";
 import * as scheduler from "./scheduler.ts";
 import * as statusMessage from "./status-message.ts";
-import { inactivityMiddleware } from "../middleware/inactivity.ts";
 import { createConfigEditHandler } from "../utils/convo-handler.ts";
 
 let botInstance: Bot<MyContext> | null = null;
@@ -70,9 +73,9 @@ function createAdminComposer() {
   // Config edit handler
   adminComposer.on("message:text", createConfigEditHandler());
 
-  adminComposer.use(inactivityMiddleware());
   adminComposer.command("start", handleStart);
   adminComposer.command("reset", handleReset);
+  adminComposer.command("reboot", handleReboot);
   return adminComposer;
 }
 

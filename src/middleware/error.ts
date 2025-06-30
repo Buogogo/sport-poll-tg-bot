@@ -10,14 +10,19 @@ export const errorHandler = async (
     logger.debug("Error ignored: message is not modified");
     return;
   }
-  if (error.error instanceof UserFacingError) {
-    try {
+  try {
+    if (error.error instanceof UserFacingError) {
       await error.ctx.reply(error.error.message);
-    } catch (replyError) {
-      logger.error("Failed to send user error message", { replyError });
+    } else {
+      logger.error("Unhandled bot error", { error });
+      Sentry.captureException(error);
+      // Attempt to reply with a generic error message
+      await error.ctx.reply(
+        "An unexpected error occurred. Please try again later.",
+      );
     }
-  } else {
-    logger.error("Unhandled bot error", { error });
-    Sentry.captureException(error);
+  } catch (replyError) {
+    logger.error("Failed to send error message to user", { replyError });
+    // Do not throw further, just ensure the function completes
   }
 };

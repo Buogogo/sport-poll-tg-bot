@@ -105,7 +105,14 @@ export const pollCreateMenu: Menu<MyContext> = new Menu<MyContext>(
     ctx.menu.update();
   }).row()
   .text(MESSAGES.MENU_CREATE, confirmPoll)
-  .text(MESSAGES.MENU_BACK, (ctx: MyContext) => ctx.menu.nav("main"));
+  .text(MESSAGES.MENU_BACK, async (ctx: MyContext) => {
+    if (ctx.session.editTarget) {
+      ctx.session.editTarget = undefined;
+      ctx.session.editContext = undefined;
+      await ctx.reply("Скасовано");
+    }
+    ctx.menu.nav("main");
+  });
 
 const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
   "weekly-settings",
@@ -201,7 +208,14 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
   .text(MESSAGES.MENU_REFRESH, (ctx: MyContext) => {
     ctx.menu.update();
   }).row()
-  .text(MESSAGES.MENU_BACK, (ctx: MyContext) => ctx.menu.nav("main"));
+  .text(MESSAGES.MENU_BACK, async (ctx: MyContext) => {
+    if (ctx.session.editTarget) {
+      ctx.session.editTarget = undefined;
+      ctx.session.editContext = undefined;
+      await ctx.reply("Скасовано");
+    }
+    ctx.menu.nav("main");
+  });
 
 export const weeklySettingsMenu = weeklySettingsMenuInst;
 

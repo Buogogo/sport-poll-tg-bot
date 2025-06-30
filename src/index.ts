@@ -1,44 +1,24 @@
-import * as Sentry from "sentry";
+import { webhookCallback } from "https://deno.land/x/grammy@v1.36.3/mod.ts";
 import { initializeBot } from "./services/bot.ts";
-import { initializeScheduler } from "./services/scheduler.ts";
 import * as pollService from "./services/poll-service.ts";
 import { logger } from "./utils/logger.ts";
 
-const main = async () => {
-  try {
-    Sentry.init({
-      environment: Deno.env.get("ENV"),
-      dsn:
-        "https://8064e4ec38387cae1275fcde47d567ae@o4509553547149312.ingest.de.sentry.io/4509553550819408",
-    });
-    await pollService.loadPersistedData();
-    await initializeScheduler();
-    const { bot } = initializeBot();
-    await bot.start({
-      onStart: (botInfo: { username: string }) => {
-        logger.info(`Bot @${botInfo.username} started!`);
-      },
-    });
-  } catch (err) {
-    Sentry.captureException(err);
-  }
-};
-
-if (import.meta.main) main().catch(console.error);
-
-const { bot } = initializeBot();
+const { bot, config } = initializeBot();
+const handleUpdate = webhookCallback(bot, "std/http");
 
 Deno.serve(async (req) => {
-  const url = new URL(req.url);
-  if (url.pathname === "/webhook" && req.method === "POST") {
-    await pollService.loadPersistedData();
-    const update = await req.json();
-    try {
-      await bot.handleUpdate(update);
-      return new Response("OK");
-    } catch {
-      return new Response("Error", { status: 500 });
+  if (req.method === "POST") {
+    const url = new URL(req.url);
+    // Use bot token as secret webhook path
+    if (url.pathname.slice(1) === config.botToken) {
+      await pollService.loadPersistedData();
+      try {
+        return await handleUpdate(req);
+      } catch (err) {
+        logger.error("Webhook handler error", { err });
+        return new Response("Error", { status: 500 });
+      }
     }
   }
-  return new Response("OK");
+  return new Response();
 });

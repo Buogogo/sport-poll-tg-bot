@@ -287,13 +287,14 @@ export async function addVotesBulk(
   // Add all votes at once
   pollState.votes.push(...votes);
   await setPollState(pollState);
-  // Optionally, post a single event for the batch (or keep per-vote for compatibility)
-  for (const v of votes) {
+  // Post a single event for the batch (using the last vote for context)
+  if (votes.length > 0) {
+    const lastVote = votes[votes.length - 1];
     pollVoteEvt.post({
       type: "vote_added",
-      vote: v,
-      userId: v.requesterId,
-      userName: v.requesterName,
+      vote: lastVote,
+      userId: lastVote.requesterId,
+      userName: lastVote.requesterName,
     });
   }
   // Check for completion and post event if needed

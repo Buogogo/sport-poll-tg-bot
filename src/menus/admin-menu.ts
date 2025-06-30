@@ -20,10 +20,10 @@ const confirmPoll = async (ctx: MyContext) => {
 
 const toggleWeeklyStatus = async (ctx: MyContext) => {
   const config = pollService.getWeeklyConfig();
-  const enabled = !!config.enabled;
-  pollService.setWeeklyConfig({ enabled: !enabled });
+  const newEnabled = !config.enabled;
+  pollService.setWeeklyConfig({ enabled: newEnabled });
   await ctx.answerCallbackQuery(
-    enabled ? MESSAGES.WEEKLY_DISABLED : MESSAGES.WEEKLY_ENABLED,
+    newEnabled ? MESSAGES.WEEKLY_ENABLED : MESSAGES.WEEKLY_DISABLED,
   );
   ctx.menu.update();
 };

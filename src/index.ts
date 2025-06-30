@@ -1,4 +1,4 @@
-import { webhookCallback } from "https://deno.land/x/grammy@v1.36.3/mod.ts";
+import { webhookCallback } from "grammy";
 import { initializeBot } from "./services/bot.ts";
 import * as pollService from "./services/poll-service.ts";
 import { logger } from "./utils/logger.ts";

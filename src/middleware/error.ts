@@ -7,7 +7,8 @@ export const errorHandler = async (
   error: BotError,
 ) => {
   if (error.message.includes("message is not modified")) {
-    logger.debug("Error ignored: message is not modified");
+    logger.error("Error ignored: message is not modified");
+    await error.ctx.answerCallbackQuery("Вже оновлено!");
     return;
   }
   try {

@@ -227,15 +227,6 @@ export async function addVote(ctx: MyContext): Promise<void> {
     userId: user!.id,
     userName: user!.first_name,
   });
-  // Check for completion and post event if needed
-  const updatedStateAdd = await getPollState();
-  const currentVotesAdd =
-    updatedStateAdd.votes.filter((v) => v.optionId === 0).length;
-  if (
-    updatedStateAdd.isActive && currentVotesAdd >= updatedStateAdd.targetVotes
-  ) {
-    pollStateEvt.post({ type: "poll_completed", pollState: updatedStateAdd });
-  }
 }
 
 export async function addVotesBulk(
@@ -296,11 +287,6 @@ export async function addVotesBulk(
       userId: lastVote.requesterId,
       userName: lastVote.requesterName,
     });
-  }
-  // Check for completion and post event if needed
-  const newVotes = pollState.votes.filter((v) => v.optionId === 0).length;
-  if (pollState.isActive && newVotes >= pollState.targetVotes) {
-    pollStateEvt.post({ type: "poll_completed", pollState });
   }
 }
 
@@ -450,11 +436,26 @@ export async function handleVote(ctx: MyContext): Promise<void> {
   }
 }
 
+export function resetPoll(): void {
+  const newState: PollState = {
+    ...DEFAULT_POLL_STATE,
+    votes: [],
+    telegramMessageId: 0,
+  };
+  pollStateEvt.post({ type: "poll_reset", pollState: newState });
+}
+
 export async function closePollLogic(): Promise<
   { closed: boolean; message: string }
 > {
-  if (await isPollActive()) {
-    await resetPoll();
+  const pollState = await getPollState();
+  if (pollState.isActive) {
+    const newState: PollState = {
+      ...DEFAULT_POLL_STATE,
+      votes: [],
+      telegramMessageId: 0,
+    };
+    pollStateEvt.post({ type: "poll_closed", pollState: newState });
     return { closed: true, message: MESSAGES.POLL_CLOSED_CB };
   } else {
     return { closed: false, message: MESSAGES.NO_ACTIVE_POLLS_CB };
@@ -472,13 +473,4 @@ export async function confirmPollLogic(): Promise<
     config.targetVotes,
   );
   return { success: true, message: MESSAGES.POLL_SUCCESS };
-}
-
-export async function resetPoll(): Promise<void> {
-  const newState: PollState = {
-    ...DEFAULT_POLL_STATE,
-    votes: [],
-    telegramMessageId: 0,
-  };
-  await setPollState(newState);
 }

@@ -13,7 +13,7 @@ import { Vote } from "../models/vote.ts";
 import { parseRevokeCommand, parseVoteCommand } from "../utils/utils.ts";
 import * as persistence from "./persistence.ts";
 import * as scheduler from "./scheduler.ts";
-import { pollVoteEvt } from "../events/events.ts";
+import { pollStateEvt, pollVoteEvt } from "../events/events.ts";
 
 // Bot and config references (will be set by bot service)
 let botInstance: Bot<MyContext> | null = null;
@@ -114,40 +114,7 @@ export async function isCompleted(): Promise<boolean> {
   return currentVotes >= pollState.targetVotes;
 }
 
-export async function initializePoll(
-  question: string,
-  positiveOption: string,
-  negativeOption: string,
-  targetVotes: number,
-  telegramMessageId?: number,
-  isInstantPoll?: boolean,
-): Promise<void> {
-  const pollState = await getPollState();
-  if (pollState.isActive) await resetPoll();
-  let finalTelegramMessageId = telegramMessageId;
-  if (isInstantPoll && !telegramMessageId && botInstance && configInstance) {
-    const poll = await botInstance.api.sendPoll(
-      configInstance.targetGroupChatId,
-      question,
-      [{ text: positiveOption }, { text: negativeOption }],
-      { is_anonymous: false, type: "regular" },
-    );
-    finalTelegramMessageId = poll.message_id;
-  }
-  const newState: PollState = {
-    isActive: true,
-    question,
-    positiveOption,
-    negativeOption,
-    targetVotes,
-    telegramMessageId: finalTelegramMessageId,
-    votes: [],
-    statusMessageId: undefined,
-  };
-  await setPollState(newState);
-}
-
-export async function createPoll(
+export async function startPoll(
   question: string,
   positiveOption: string,
   negativeOption: string,
@@ -174,14 +141,7 @@ export async function createPoll(
     statusMessageId: undefined,
   };
   await setPollState(newState);
-}
-
-export async function resetPoll(): Promise<void> {
-  const newState: PollState = {
-    ...DEFAULT_POLL_STATE,
-    votes: [],
-  };
-  await setPollState(newState);
+  pollStateEvt.post({ type: "poll_started", pollState: newState });
 }
 
 export function* iteratePositiveVotesSync(
@@ -457,11 +417,19 @@ export async function confirmPollLogic(): Promise<
   { success: boolean; message: string }
 > {
   const config = await getInstantPollConfig();
-  await createPoll(
+  await startPoll(
     config.question,
     config.positiveOption,
     config.negativeOption,
     config.targetVotes,
   );
   return { success: true, message: MESSAGES.POLL_SUCCESS };
+}
+
+export async function resetPoll(): Promise<void> {
+  const newState: PollState = {
+    ...DEFAULT_POLL_STATE,
+    votes: [],
+  };
+  await setPollState(newState);
 }

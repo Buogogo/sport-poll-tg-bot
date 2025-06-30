@@ -41,7 +41,7 @@ export async function createOrReplaceWeeklyPoll(): Promise<void> {
   }
   const { question, positiveOption, negativeOption, targetVotes } =
     await pollService.createWeeklyPoll();
-  await pollService.createPoll(
+  await pollService.startPoll(
     question,
     positiveOption,
     negativeOption,

@@ -1,11 +1,14 @@
-import { PollState } from "../constants/types.ts";
+import {
+  InstantPollConfig,
+  PollState,
+  WeeklyConfig,
+} from "../constants/types.ts";
 import {
   DEFAULT_INSTANT_POLL_CONFIG,
   DEFAULT_POLL_STATE,
   DEFAULT_WEEKLY_CONFIG,
 } from "../constants/config.ts";
 import { Vote } from "../models/vote.ts";
-import { configUpdateEvt, pollStateEvt } from "../events/events.ts";
 
 // Deno KV keys
 const POLL_STATE_KEY = ["poll-state"];
@@ -55,39 +58,34 @@ function migratePollState(loadedState: Record<string, unknown>) {
   return { ...loadedState, votes };
 }
 
-export async function loadAll() {
-  const [loadedState, weeklyConfig, instantPollConfig] = await Promise.all([
-    kvGet(POLL_STATE_KEY, {} as Partial<PollState>),
-    kvGet(WEEKLY_CONFIG_KEY, DEFAULT_WEEKLY_CONFIG),
-    kvGet(INSTANT_POLL_CONFIG_KEY, DEFAULT_INSTANT_POLL_CONFIG),
-  ]);
+export async function getPollState(): Promise<PollState> {
+  const loadedState = await kvGet(POLL_STATE_KEY, {} as Partial<PollState>);
   const migratedState = migratePollState(loadedState);
   return {
-    pollState: {
-      ...DEFAULT_POLL_STATE,
-      votes: [],
-      ...migratedState,
-    },
-    weeklyConfig,
-    instantPollConfig,
+    ...DEFAULT_POLL_STATE,
+    votes: [],
+    ...migratedState,
   };
 }
 
-export function initializeEventListeners() {
-  pollStateEvt.attach((event) => {
-    if (
-      event.type === "poll_started" || event.type === "poll_completed" ||
-      event.type === "poll_closed" || event.type === "poll_reset"
-    ) {
-      kvSet(POLL_STATE_KEY, event.pollState);
-    }
-  });
-  configUpdateEvt.attach((event) => {
-    const { config } = event;
-    if (event.type === "weekly_config_updated") {
-      kvSet(WEEKLY_CONFIG_KEY, config);
-    } else if (event.type === "instant_poll_config_updated") {
-      kvSet(INSTANT_POLL_CONFIG_KEY, config);
-    }
-  });
+export async function setPollState(state: PollState): Promise<void> {
+  await kvSet(POLL_STATE_KEY, state);
+}
+
+export async function getWeeklyConfig(): Promise<WeeklyConfig> {
+  return await kvGet(WEEKLY_CONFIG_KEY, DEFAULT_WEEKLY_CONFIG);
+}
+
+export async function setWeeklyConfig(config: WeeklyConfig): Promise<void> {
+  await kvSet(WEEKLY_CONFIG_KEY, config);
+}
+
+export async function getInstantPollConfig(): Promise<InstantPollConfig> {
+  return await kvGet(INSTANT_POLL_CONFIG_KEY, DEFAULT_INSTANT_POLL_CONFIG);
+}
+
+export async function setInstantPollConfig(
+  config: InstantPollConfig,
+): Promise<void> {
+  await kvSet(INSTANT_POLL_CONFIG_KEY, config);
 }

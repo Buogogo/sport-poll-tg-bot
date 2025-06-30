@@ -7,26 +7,13 @@ import {
   VoteInfo,
   WeeklyConfig,
 } from "../constants/types.ts";
-import {
-  DEFAULT_INSTANT_POLL_CONFIG,
-  DEFAULT_POLL_STATE,
-  DEFAULT_WEEKLY_CONFIG,
-} from "../constants/config.ts";
+import { DEFAULT_POLL_STATE } from "../constants/config.ts";
 import { MESSAGES } from "../constants/messages.ts";
 import { Vote } from "../models/vote.ts";
 import { parseRevokeCommand, parseVoteCommand } from "../utils/utils.ts";
 import * as persistence from "./persistence.ts";
 import * as scheduler from "./scheduler.ts";
-import {
-  configUpdateEvt,
-  pollStateEvt,
-  pollVoteEvt,
-} from "../events/events.ts";
-
-// State
-let pollState: PollState = { ...DEFAULT_POLL_STATE, votes: [] };
-let weeklyConfig: WeeklyConfig = DEFAULT_WEEKLY_CONFIG;
-let instantPollConfig: InstantPollConfig = DEFAULT_INSTANT_POLL_CONFIG;
+import { pollVoteEvt } from "../events/events.ts";
 
 // Bot and config references (will be set by bot service)
 let botInstance: Bot<MyContext> | null = null;
@@ -48,63 +35,60 @@ export function setBotInstance(
   configInstance = config;
 }
 
-export async function loadPersistedData(): Promise<void> {
-  const { pollState: ps, weeklyConfig: wc, instantPollConfig: ic } =
-    await persistence.loadAll();
-  pollState = ps;
-  weeklyConfig = wc;
-  instantPollConfig = ic;
+// --- Poll State ---
+export async function getPollState(): Promise<PollState> {
+  return await persistence.getPollState();
 }
 
-export function getPollState(): PollState {
-  return pollState;
+export async function setPollState(state: PollState): Promise<void> {
+  await persistence.setPollState(state);
 }
 
-export function getWeeklyConfig(): WeeklyConfig {
-  return weeklyConfig;
+// --- Weekly Config ---
+export async function getWeeklyConfig(): Promise<WeeklyConfig> {
+  return await persistence.getWeeklyConfig();
 }
 
-export function getInstantPollConfig(): InstantPollConfig {
-  return instantPollConfig;
-}
-
-export function setPollState(updates: Partial<PollState>): void {
-  Object.assign(pollState, updates);
-}
-
-export function setWeeklyConfig(
+export async function setWeeklyConfig(
   updates: Partial<WeeklyConfig>,
-): void {
-  Object.assign(weeklyConfig, updates);
+): Promise<void> {
+  const config = await persistence.getWeeklyConfig();
+  Object.assign(config, updates);
   if (
     (typeof updates.enabled !== "undefined" && updates.enabled) ||
     typeof updates.startHour !== "undefined" ||
     typeof updates.randomWindowMinutes !== "undefined" ||
     typeof updates.dayOfWeek !== "undefined"
   ) {
-    weeklyConfig.nextPollTime = scheduler.calculateNextPollTime().toISOString();
+    const nextPollTime = await scheduler.calculateNextPollTime();
+    config.nextPollTime = (await nextPollTime).toISOString();
   }
-  configUpdateEvt.post({ type: "weekly_config_updated", config: weeklyConfig });
+  await persistence.setWeeklyConfig(config);
 }
 
-export function setInstantPollConfig(
+// --- Instant Poll Config ---
+export async function getInstantPollConfig(): Promise<InstantPollConfig> {
+  return await persistence.getInstantPollConfig();
+}
+
+export async function setInstantPollConfig(
   updates: Partial<InstantPollConfig>,
-): void {
-  Object.assign(instantPollConfig, updates);
-  configUpdateEvt.post({
-    type: "instant_poll_config_updated",
-    config: instantPollConfig,
-  });
+): Promise<void> {
+  const config = await persistence.getInstantPollConfig();
+  Object.assign(config, updates);
+  await persistence.setInstantPollConfig(config);
 }
 
-export function getPositiveVotes(): number {
+export async function getPositiveVotes(): Promise<number> {
+  const pollState = await getPollState();
   return pollState.votes.filter((v) => v.optionId === 0).length;
 }
 
-export function buildStatusMessage(): string {
+export async function buildStatusMessage(): Promise<string> {
+  const pollState = await getPollState();
   if (!pollState.isActive && pollState.targetVotes === 0) return "";
-  const currentVotes = getPositiveVotes();
-  const completed = isCompleted();
+  const currentVotes = pollState.votes.filter((v) => v.optionId === 0).length;
+  const completed = await isCompleted();
   const remaining = pollState.targetVotes - currentVotes;
   let status = MESSAGES.STATUS_HEADER;
   status += completed ? MESSAGES.STATUS_COMPLETED : MESSAGES.STATUS_ACTIVE;
@@ -124,8 +108,10 @@ export function buildStatusMessage(): string {
   return status;
 }
 
-export function isCompleted(): boolean {
-  return getPositiveVotes() >= pollState.targetVotes;
+export async function isCompleted(): Promise<boolean> {
+  const pollState = await getPollState();
+  const currentVotes = pollState.votes.filter((v) => v.optionId === 0).length;
+  return currentVotes >= pollState.targetVotes;
 }
 
 export async function initializePoll(
@@ -136,7 +122,8 @@ export async function initializePoll(
   telegramMessageId?: number,
   isInstantPoll?: boolean,
 ): Promise<void> {
-  if (pollState.isActive) resetPoll();
+  const pollState = await getPollState();
+  if (pollState.isActive) await resetPoll();
   let finalTelegramMessageId = telegramMessageId;
   if (isInstantPoll && !telegramMessageId && botInstance && configInstance) {
     const poll = await botInstance.api.sendPoll(
@@ -147,7 +134,7 @@ export async function initializePoll(
     );
     finalTelegramMessageId = poll.message_id;
   }
-  pollState = {
+  const newState: PollState = {
     isActive: true,
     question,
     positiveOption,
@@ -157,7 +144,7 @@ export async function initializePoll(
     votes: [],
     statusMessageId: undefined,
   };
-  pollStateEvt.post({ type: "poll_started", pollState });
+  await setPollState(newState);
 }
 
 export async function createPoll(
@@ -166,7 +153,8 @@ export async function createPoll(
   negativeOption: string,
   targetVotes: number,
 ): Promise<void> {
-  if (pollState.isActive) resetPoll();
+  const pollState = await getPollState();
+  if (pollState.isActive) await resetPoll();
   if (!botInstance || !configInstance) throw new Error("Bot not initialized");
 
   const poll = await botInstance.api.sendPoll(
@@ -175,7 +163,7 @@ export async function createPoll(
     [{ text: positiveOption }, { text: negativeOption }],
     { is_anonymous: false, type: "regular" },
   );
-  pollState = {
+  const newState: PollState = {
     isActive: true,
     question,
     positiveOption,
@@ -185,18 +173,20 @@ export async function createPoll(
     votes: [],
     statusMessageId: undefined,
   };
-  pollStateEvt.post({ type: "poll_started", pollState });
+  await setPollState(newState);
 }
 
-export function resetPoll(): void {
-  pollState = {
+export async function resetPoll(): Promise<void> {
+  const newState: PollState = {
     ...DEFAULT_POLL_STATE,
     votes: [],
   };
-  pollStateEvt.post({ type: "poll_reset", pollState });
+  await setPollState(newState);
 }
 
-export function* iteratePositiveVotes(): Generator<VoteInfo> {
+export function* iteratePositiveVotesSync(
+  pollState: PollState,
+): Generator<VoteInfo> {
   let currentNumber = 1;
   for (let i = 0; i < pollState.votes.length; i++) {
     const v = pollState.votes[i];
@@ -222,14 +212,20 @@ export function* iteratePositiveVotes(): Generator<VoteInfo> {
   }
 }
 
-export function findVoteByNumber(targetNumber: number): VoteInfo | null {
-  for (const voteInfo of iteratePositiveVotes()) {
+export async function findVoteByNumber(
+  targetNumber: number,
+): Promise<VoteInfo | null> {
+  const pollState = await getPollState();
+  for (const voteInfo of iteratePositiveVotesSync(pollState)) {
     if (voteInfo.number === targetNumber) return voteInfo;
   }
   return null;
 }
 
-export function findLastVoteByRequesterId(requesterId: number) {
+export async function findLastVoteByRequesterId(
+  requesterId: number,
+): Promise<{ index: number; vote: Vote } | null> {
+  const pollState = await getPollState();
   const votes = pollState.votes;
   const i = [...votes].reverse().findIndex((v) =>
     v.requesterId === requesterId
@@ -240,7 +236,8 @@ export function findLastVoteByRequesterId(requesterId: number) {
   };
 }
 
-export function addVote(ctx: MyContext): void {
+export async function addVote(ctx: MyContext): Promise<void> {
+  const pollState = await getPollState();
   if (!pollState.isActive) {
     throw new UserFacingError(ctx, MESSAGES.POLL_CLOSED);
   }
@@ -251,7 +248,7 @@ export function addVote(ctx: MyContext): void {
       (v) => v.userId === user!.id && v.optionId === 0,
     );
     if (already) return;
-    const currentVotes = getPositiveVotes();
+    const currentVotes = pollState.votes.filter((v) => v.optionId === 0).length;
     const remaining = pollState.targetVotes - currentVotes;
     if (remaining <= 0) return;
   }
@@ -263,28 +260,25 @@ export function addVote(ctx: MyContext): void {
     undefined,
   );
   pollState.votes.push(vote);
+  await setPollState(pollState);
   pollVoteEvt.post({
     type: "vote_added",
     vote,
     userId: user!.id,
     userName: user!.first_name,
   });
-
-  if (isCompleted() && pollState.isActive) {
-    pollState.isActive = false;
-    pollStateEvt.post({ type: "poll_completed", pollState });
-  }
 }
 
-export function addVotesBulk(
+export async function addVotesBulk(
   ctx: MyContext,
   names?: string[],
   count?: number,
-): string | void {
+): Promise<string | void> {
+  const pollState = await getPollState();
   if (!pollState.isActive) {
     throw new UserFacingError(ctx, MESSAGES.POLL_CLOSED);
   }
-  const currentVotes = getPositiveVotes();
+  const currentVotes = pollState.votes.filter((v) => v.optionId === 0).length;
   const remaining = pollState.targetVotes - currentVotes;
   let votes: Array<Vote> = [];
   if (names && names.length) {
@@ -330,19 +324,16 @@ export function addVotesBulk(
       userName: v.requesterName,
     });
   }
-
-  if (isCompleted() && pollState.isActive) {
-    pollState.isActive = false;
-    pollStateEvt.post({ type: "poll_completed", pollState });
-  }
+  await setPollState(pollState);
 }
 
-export function revokeVoteByNumber(
+export async function revokeVoteByNumber(
   voteNumber: number,
   userId: number,
   isAdmin: boolean,
   ctx: MyContext,
-): string {
+): Promise<string> {
+  const pollState = await getPollState();
   if (!pollState.isActive) {
     throw new UserFacingError(ctx, MESSAGES.POLL_CLOSED);
   }
@@ -376,14 +367,15 @@ export function revokeVoteByNumber(
       userName: vote.requesterName,
     });
   }
-
+  await setPollState(pollState);
   return MESSAGES.VOTE_REVOKED_SUCCESS(voteNumber, vote.userName ?? "Анонім");
 }
 
-export function revokeDirectVoteByUserId(
+export async function revokeDirectVoteByUserId(
   userId: number,
   ctx: MyContext,
-): void {
+): Promise<void> {
+  const pollState = await getPollState();
   if (!pollState.isActive) {
     throw new UserFacingError(ctx, MESSAGES.POLL_CLOSED);
   }
@@ -397,14 +389,16 @@ export function revokeDirectVoteByUserId(
     userId: vote.userId,
     userName: vote.userName,
   });
+  await setPollState(pollState);
 }
 
-export function createWeeklyPoll(): {
+export async function createWeeklyPoll(): Promise<{
   question: string;
   positiveOption: string;
   negativeOption: string;
   targetVotes: number;
-} {
+}> {
+  const weeklyConfig = await getWeeklyConfig();
   return {
     question: weeklyConfig.question,
     positiveOption: weeklyConfig.positiveOption,
@@ -413,7 +407,8 @@ export function createWeeklyPoll(): {
   };
 }
 
-export function isPollActive(): boolean {
+export async function isPollActive(): Promise<boolean> {
+  const pollState = await getPollState();
   return pollState.isActive;
 }
 
@@ -439,7 +434,7 @@ export async function handleRevokeCommand(ctx: MyContext): Promise<void> {
 
 export async function handleVote(ctx: MyContext): Promise<void> {
   const { option_ids, user } = ctx.update.poll_answer!;
-  if (option_ids.length === 0) revokeDirectVoteByUserId(user!.id, ctx);
+  if (option_ids.length === 0) await revokeDirectVoteByUserId(user!.id, ctx);
   switch (option_ids[0]) {
     case 0:
       await addVote(ctx);
@@ -447,9 +442,11 @@ export async function handleVote(ctx: MyContext): Promise<void> {
   }
 }
 
-export function closePollLogic(): { closed: boolean; message: string } {
-  if (isPollActive()) {
-    resetPoll();
+export async function closePollLogic(): Promise<
+  { closed: boolean; message: string }
+> {
+  if (await isPollActive()) {
+    await resetPoll();
     return { closed: true, message: MESSAGES.POLL_CLOSED_CB };
   } else {
     return { closed: false, message: MESSAGES.NO_ACTIVE_POLLS_CB };
@@ -459,7 +456,7 @@ export function closePollLogic(): { closed: boolean; message: string } {
 export async function confirmPollLogic(): Promise<
   { success: boolean; message: string }
 > {
-  const config = getInstantPollConfig();
+  const config = await getInstantPollConfig();
   await createPoll(
     config.question,
     config.positiveOption,

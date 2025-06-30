@@ -5,7 +5,7 @@ import { getNextPollTime } from "../services/scheduler.ts";
 import * as pollService from "../services/poll-service.ts";
 
 const closePoll = async (ctx: MyContext) => {
-  const result = pollService.closePollLogic();
+  const result = await pollService.closePollLogic();
   await ctx.answerCallbackQuery(result.message);
 };
 
@@ -19,9 +19,9 @@ const confirmPoll = async (ctx: MyContext) => {
 };
 
 const toggleWeeklyStatus = async (ctx: MyContext) => {
-  const config = pollService.getWeeklyConfig();
+  const config = await pollService.getWeeklyConfig();
   const newEnabled = !config.enabled;
-  pollService.setWeeklyConfig({ enabled: newEnabled });
+  await pollService.setWeeklyConfig({ enabled: newEnabled });
   await ctx.answerCallbackQuery(
     newEnabled ? MESSAGES.WEEKLY_ENABLED : MESSAGES.WEEKLY_DISABLED,
   );
@@ -29,7 +29,7 @@ const toggleWeeklyStatus = async (ctx: MyContext) => {
 };
 
 const daySelection = (dayIndex: number) => async (ctx: MyContext) => {
-  pollService.setWeeklyConfig({ dayOfWeek: dayIndex });
+  await pollService.setWeeklyConfig({ dayOfWeek: dayIndex });
   await ctx.answerCallbackQuery(MESSAGES.DAY_SAVED);
   if (ctx.menu) {
     ctx.menu.nav("weekly-settings");
@@ -52,8 +52,10 @@ export const pollCreateMenu: Menu<MyContext> = new Menu<MyContext>(
   "poll-create",
 )
   .text(
-    () =>
-      MESSAGES.MENU_LABEL_QUESTION(pollService.getInstantPollConfig().question),
+    async () =>
+      MESSAGES.MENU_LABEL_QUESTION(
+        (await pollService.getInstantPollConfig()).question,
+      ),
     async (ctx: MyContext) => {
       ctx.session.editTarget = "question";
       ctx.session.editContext = "poll";
@@ -63,9 +65,9 @@ export const pollCreateMenu: Menu<MyContext> = new Menu<MyContext>(
     },
   ).row()
   .text(
-    () =>
+    async () =>
       MESSAGES.MENU_LABEL_POSITIVE(
-        pollService.getInstantPollConfig().positiveOption,
+        (await pollService.getInstantPollConfig()).positiveOption,
       ),
     async (ctx: MyContext) => {
       ctx.session.editTarget = "positiveOption";
@@ -76,9 +78,9 @@ export const pollCreateMenu: Menu<MyContext> = new Menu<MyContext>(
     },
   ).row()
   .text(
-    () =>
+    async () =>
       MESSAGES.MENU_LABEL_NEGATIVE(
-        pollService.getInstantPollConfig().negativeOption,
+        (await pollService.getInstantPollConfig()).negativeOption,
       ),
     async (ctx: MyContext) => {
       ctx.session.editTarget = "negativeOption";
@@ -89,9 +91,9 @@ export const pollCreateMenu: Menu<MyContext> = new Menu<MyContext>(
     },
   ).row()
   .text(
-    () =>
+    async () =>
       MESSAGES.MENU_LABEL_TARGET(
-        pollService.getInstantPollConfig().targetVotes,
+        (await pollService.getInstantPollConfig()).targetVotes,
       ),
     async (ctx: MyContext) => {
       ctx.session.editTarget = "targetVotes";
@@ -118,7 +120,10 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
   "weekly-settings",
 )
   .text(
-    () => MESSAGES.MENU_LABEL_QUESTION(pollService.getWeeklyConfig().question),
+    async () =>
+      MESSAGES.MENU_LABEL_QUESTION(
+        (await pollService.getWeeklyConfig()).question,
+      ),
     async (ctx: MyContext) => {
       ctx.session.editTarget = "question";
       ctx.session.editContext = "weekly";
@@ -128,9 +133,9 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
     },
   ).row()
   .text(
-    () =>
+    async () =>
       MESSAGES.MENU_LABEL_POSITIVE(
-        pollService.getWeeklyConfig().positiveOption,
+        (await pollService.getWeeklyConfig()).positiveOption,
       ),
     async (ctx: MyContext) => {
       ctx.session.editTarget = "positiveOption";
@@ -141,9 +146,9 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
     },
   ).row()
   .text(
-    () =>
+    async () =>
       MESSAGES.MENU_LABEL_NEGATIVE(
-        pollService.getWeeklyConfig().negativeOption,
+        (await pollService.getWeeklyConfig()).negativeOption,
       ),
     async (ctx: MyContext) => {
       ctx.session.editTarget = "negativeOption";
@@ -154,7 +159,10 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
     },
   ).row()
   .text(
-    () => MESSAGES.MENU_LABEL_TARGET(pollService.getWeeklyConfig().targetVotes),
+    async () =>
+      MESSAGES.MENU_LABEL_TARGET(
+        (await pollService.getWeeklyConfig()).targetVotes,
+      ),
     async (ctx: MyContext) => {
       ctx.session.editTarget = "targetVotes";
       ctx.session.editContext = "weekly";
@@ -164,14 +172,15 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
     },
   ).row()
   .text(
-    () =>
+    async () =>
       MESSAGES.MENU_LABEL_DAY(
-        DAYS[pollService.getWeeklyConfig().dayOfWeek] || "???",
+        DAYS[(await pollService.getWeeklyConfig()).dayOfWeek] || "???",
       ),
     (ctx: MyContext) => ctx.menu.nav("day-selector"),
   ).row()
   .text(
-    () => MESSAGES.MENU_LABEL_TIME(pollService.getWeeklyConfig().startHour),
+    async () =>
+      MESSAGES.MENU_LABEL_TIME((await pollService.getWeeklyConfig()).startHour),
     async (ctx: MyContext) => {
       ctx.session.editTarget = "startHour";
       ctx.session.editContext = "weekly";
@@ -180,8 +189,9 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
       );
     },
   ).row()
-  .text(() => {
-    const minutes = pollService.getWeeklyConfig().randomWindowMinutes || 0;
+  .text(async () => {
+    const minutes = (await pollService.getWeeklyConfig()).randomWindowMinutes ||
+      0;
     return `🎲 Випадковість: ${
       minutes === 0
         ? MESSAGES.MENU_RANDOM_OFF
@@ -194,9 +204,9 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
       MESSAGES.ENTER_FIELD_PROMPT(MESSAGES.FIELD_NAMES["randomWindowMinutes"]),
     );
   }).row()
-  .text(() => {
-    const config = pollService.getWeeklyConfig();
-    const planned = config.enabled && getNextPollTime();
+  .text(async () => {
+    const config = await pollService.getWeeklyConfig();
+    const planned = config.enabled && await getNextPollTime();
     let label = planned ? MESSAGES.MENU_ENABLED : MESSAGES.MENU_DISABLED;
     if (planned) {
       label += ` (${

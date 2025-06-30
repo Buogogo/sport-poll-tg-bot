@@ -36,7 +36,7 @@ export interface SchedulerEvent {
 
 export interface SessionEvent {
   type: "session_reset";
-  ctx: any; // Use any to avoid circular import, but should be MyContext
+  ctx: unknown; // TODO: Use MyContext if circular import is resolved
 }
 
 export const pollVoteEvt = Evt.create<PollVoteEvent>();

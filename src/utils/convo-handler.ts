@@ -71,10 +71,10 @@ export const createConfigEditHandler =
       const validatedValue = validateField(target, value);
       // Save to config
       if (context === "poll") {
-        pollService.setInstantPollConfig({ [target]: validatedValue });
+        await pollService.setInstantPollConfig({ [target]: validatedValue });
       }
       if (context === "weekly") {
-        pollService.setWeeklyConfig({ [target]: validatedValue });
+        await pollService.setWeeklyConfig({ [target]: validatedValue });
       }
       await ctx.reply(MESSAGES.FIELD_SAVED);
       ctx.session.editTarget = undefined;

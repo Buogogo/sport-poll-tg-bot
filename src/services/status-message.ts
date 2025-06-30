@@ -26,11 +26,11 @@ export function setBotInstance(
 export async function updateStatusMessage(): Promise<void> {
   if (!botInstance || !configInstance) return;
 
-  const pollState = pollService.getPollState();
+  const pollState = await pollService.getPollState();
   const { statusMessageId } = pollState;
   if (!statusMessageId) return;
 
-  const statusText = pollService.buildStatusMessage();
+  const statusText = await pollService.buildStatusMessage();
   await botInstance.api.editMessageText(
     configInstance.targetGroupChatId,
     statusMessageId,
@@ -43,10 +43,12 @@ export async function createStatusMessage(): Promise<void> {
   if (!botInstance || !configInstance) return;
   const statusMessage = await botInstance.api.sendMessage(
     configInstance.targetGroupChatId,
-    pollService.buildStatusMessage(),
+    await pollService.buildStatusMessage(),
     { parse_mode: "Markdown" },
   );
-  pollService.setPollState({ statusMessageId: statusMessage.message_id });
+  const pollState = await pollService.getPollState();
+  pollState.statusMessageId = statusMessage.message_id;
+  await pollService.setPollState(pollState);
 }
 
 export async function sendPollCompletionMessage(): Promise<void> {
@@ -59,7 +61,7 @@ export async function sendPollCompletionMessage(): Promise<void> {
 
 export async function stopPoll(): Promise<void> {
   if (!botInstance || !configInstance) return;
-  const pollState = pollService.getPollState();
+  const pollState = await pollService.getPollState();
   if (pollState.telegramMessageId !== undefined) {
     await botInstance.api.stopPoll(
       configInstance.targetGroupChatId,

@@ -13,7 +13,6 @@ import { handleGroupText } from "../commands/group-commands.ts";
 import { onlyTargetGroup } from "../middleware/group.ts";
 import { mainMenu } from "../menus/admin-menu.ts";
 import * as pollService from "./poll-service.ts";
-import * as persistence from "./persistence.ts";
 import * as scheduler from "./scheduler.ts";
 import * as statusMessage from "./status-message.ts";
 import { createConfigEditHandler } from "../utils/convo-handler.ts";
@@ -29,7 +28,6 @@ export function initializeBot(): { bot: Bot<MyContext>; config: Config } {
   botInstance = new Bot<MyContext>(configInstance.botToken);
   pollService.setBotInstance(botInstance, configInstance);
   statusMessage.setBotInstance(botInstance, configInstance);
-  persistence.initializeEventListeners();
   scheduler.initializeSchedulerEventListeners();
   statusMessage.initializeEventListeners();
   botInstance.catch((e) => errorHandler(e));

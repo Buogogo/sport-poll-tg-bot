@@ -394,7 +394,7 @@ export async function handleVoteCommand(ctx: MyContext): Promise<void> {
     );
   }
   if (newVotes >= pollStateAfter.targetVotes) {
-    await ctx.reply(MESSAGES.POLL_COMPLETION);
+    // await ctx.reply(MESSAGES.POLL_COMPLETION); // Removed to avoid duplicate completion messages
   }
 }
 
@@ -432,7 +432,7 @@ export async function handleVote(ctx: MyContext): Promise<void> {
     );
   }
   if (newVotes >= pollStateAfter.targetVotes) {
-    await ctx.reply(MESSAGES.POLL_COMPLETION);
+    // await ctx.reply(MESSAGES.POLL_COMPLETION); // Removed to avoid duplicate completion messages
   }
 }
 

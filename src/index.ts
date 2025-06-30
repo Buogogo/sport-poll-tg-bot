@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
       try {
         return await handleUpdate(req);
       } catch (err) {
-        logger.error("Webhook handler error:", { err });
+        logger.error(err);
         return new Response("Error", { status: 500 });
       }
     }

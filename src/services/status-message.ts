@@ -76,8 +76,13 @@ export function initializeEventListeners() {
       await createStatusMessage();
       return;
     } else if (event.type === "poll_completed") {
+      // Set poll to inactive and save
+      const pollState = { ...event.pollState, isActive: false };
+      await pollService.setPollState(pollState);
       await stopPoll();
       await sendPollCompletionMessage();
+      await updateStatusMessage();
+      return;
     }
     await updateStatusMessage();
   });

@@ -208,8 +208,8 @@ export async function addVote(ctx: MyContext): Promise<void> {
       (v) => v.userId === user!.id && v.optionId === 0,
     );
     if (already) return;
-    const currentVotes = pollState.votes.filter((v) => v.optionId === 0).length;
-    const remaining = pollState.targetVotes - currentVotes;
+    const remaining = pollState.targetVotes -
+      pollState.votes.filter((v) => v.optionId === 0).length;
     if (remaining <= 0) return;
   }
   const vote = new Vote(
@@ -227,6 +227,15 @@ export async function addVote(ctx: MyContext): Promise<void> {
     userId: user!.id,
     userName: user!.first_name,
   });
+  // Check for completion and post event if needed
+  const updatedStateAdd = await getPollState();
+  const currentVotesAdd =
+    updatedStateAdd.votes.filter((v) => v.optionId === 0).length;
+  if (
+    updatedStateAdd.isActive && currentVotesAdd >= updatedStateAdd.targetVotes
+  ) {
+    pollStateEvt.post({ type: "poll_completed", pollState: updatedStateAdd });
+  }
 }
 
 export async function addVotesBulk(
@@ -238,8 +247,8 @@ export async function addVotesBulk(
   if (!pollState.isActive) {
     throw new UserFacingError(ctx, MESSAGES.POLL_CLOSED);
   }
-  const currentVotes = pollState.votes.filter((v) => v.optionId === 0).length;
-  const remaining = pollState.targetVotes - currentVotes;
+  const remaining = pollState.targetVotes -
+    pollState.votes.filter((v) => v.optionId === 0).length;
   let votes: Array<Vote> = [];
   if (names && names.length) {
     votes = names.map((name) =>
@@ -285,6 +294,16 @@ export async function addVotesBulk(
     });
   }
   await setPollState(pollState);
+  // Check for completion and post event if needed
+  const updatedStateBulk = await getPollState();
+  const currentVotesBulk =
+    updatedStateBulk.votes.filter((v) => v.optionId === 0).length;
+  if (
+    updatedStateBulk.isActive &&
+    currentVotesBulk >= updatedStateBulk.targetVotes
+  ) {
+    pollStateEvt.post({ type: "poll_completed", pollState: updatedStateBulk });
+  }
 }
 
 export async function revokeVoteByNumber(

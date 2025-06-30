@@ -24,9 +24,6 @@ export const errorHandler = async (
     } else {
       logger.error("Unhandled bot error", { error });
       Sentry.captureException(error);
-      await error.ctx.reply(
-        "An unexpected error occurred. Please try again later.",
-      );
       return new Response("Bot error", { status: 500 });
     }
   } catch (replyError) {

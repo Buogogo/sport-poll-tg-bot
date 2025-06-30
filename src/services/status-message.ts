@@ -1,6 +1,6 @@
 import { Bot } from "grammy";
 import { MyContext } from "../middleware/session.ts";
-import { pollStateEvt } from "../events/events.ts";
+import { pollStateEvt, pollVoteEvt } from "../events/events.ts";
 import * as pollService from "./poll-service.ts";
 import { MESSAGES } from "../constants/messages.ts";
 
@@ -80,5 +80,11 @@ export function initializeEventListeners() {
       await sendPollCompletionMessage();
     }
     await updateStatusMessage();
+  });
+  // Add listener for vote events to update status message
+  pollVoteEvt.attach(async (event) => {
+    if (event.type === "vote_added" || event.type === "vote_revoked") {
+      await updateStatusMessage();
+    }
   });
 }

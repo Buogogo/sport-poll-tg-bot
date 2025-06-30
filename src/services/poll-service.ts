@@ -391,7 +391,7 @@ export async function handleVoteCommand(ctx: MyContext): Promise<void> {
     );
   }
   if (newVotes >= pollStateAfter.targetVotes) {
-    await ctx.reply(MESSAGES.STATUS_COMPLETED);
+    await ctx.reply(MESSAGES.POLL_COMPLETION);
   }
 }
 
@@ -429,7 +429,7 @@ export async function handleVote(ctx: MyContext): Promise<void> {
     );
   }
   if (newVotes >= pollStateAfter.targetVotes) {
-    await ctx.reply(MESSAGES.STATUS_COMPLETED);
+    await ctx.reply(MESSAGES.POLL_COMPLETION);
   }
 }
 

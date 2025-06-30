@@ -76,8 +76,8 @@ export const MESSAGES = {
   // Static messages (with emoji)
   BOT_STARTED: "🤖 SportPollBot запущено!",
   DEFAULT_ERROR: "🫠 Упс! Шось не так",
-  VOTE_ADDED: (text: string) => `Додано ${text}`,
-  NO_VOTES_TO_REVOKE: "Немає голосів для скасування",
+  VOTE_ADDED: (text: string) => `✅ Додано ${text}`,
+  NO_VOTES_TO_REVOKE: "❌ Немає голосів для скасування",
   ANONYMOUS_VOTE_SINGLE: "1 анонім",
   ANONYMOUS_VOTES_MULTIPLE: (count: number) => `x${count} аноніми`,
   NAMED_VOTE_SINGLE: (name: string) => `голос за ${name}`,

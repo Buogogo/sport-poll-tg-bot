@@ -374,8 +374,25 @@ export async function isPollActive(): Promise<boolean> {
 
 export async function handleVoteCommand(ctx: MyContext): Promise<void> {
   const { names, count } = parseVoteCommand(ctx.message!.text!);
+  const pollStateBefore = await getPollState();
+  const prevVotes =
+    pollStateBefore.votes.filter((v) => v.optionId === 0).length;
   const result = await addVotesBulk(ctx, names, count);
-  if (result) await ctx.reply(result);
+  if (result) {
+    await ctx.reply(result);
+    return;
+  }
+  const pollStateAfter = await getPollState();
+  const newVotes = pollStateAfter.votes.filter((v) => v.optionId === 0).length;
+  const added = newVotes - prevVotes;
+  if (added > 0) {
+    await ctx.reply(
+      MESSAGES.VOTE_ADDED(added === 1 ? "1 голос" : `${added} голосів`),
+    );
+  }
+  if (newVotes >= pollStateAfter.targetVotes) {
+    await ctx.reply(MESSAGES.STATUS_COMPLETED);
+  }
 }
 
 export async function handleRevokeCommand(ctx: MyContext): Promise<void> {
@@ -393,12 +410,26 @@ export async function handleRevokeCommand(ctx: MyContext): Promise<void> {
 }
 
 export async function handleVote(ctx: MyContext): Promise<void> {
+  const pollStateBefore = await getPollState();
+  const prevVotes =
+    pollStateBefore.votes.filter((v) => v.optionId === 0).length;
   const { option_ids, user } = ctx.update.poll_answer!;
   if (option_ids.length === 0) await revokeDirectVoteByUserId(user!.id, ctx);
   switch (option_ids[0]) {
     case 0:
       await addVote(ctx);
       break;
+  }
+  const pollStateAfter = await getPollState();
+  const newVotes = pollStateAfter.votes.filter((v) => v.optionId === 0).length;
+  const added = newVotes - prevVotes;
+  if (added > 0) {
+    await ctx.reply(
+      MESSAGES.VOTE_ADDED(added === 1 ? "1 голос" : `${added} голосів`),
+    );
+  }
+  if (newVotes >= pollStateAfter.targetVotes) {
+    await ctx.reply(MESSAGES.STATUS_COMPLETED);
   }
 }
 

@@ -7,9 +7,9 @@ const { bot, config } = initializeBot();
 const handleUpdate = webhookCallback(bot, "std/http");
 
 Deno.serve(async (req) => {
+  console.log("req came");
   if (req.method === "POST") {
     const url = new URL(req.url);
-    // Use bot token as secret webhook path
     if (url.pathname.slice(1) === config.botToken) {
       await pollService.loadPersistedData();
       try {
@@ -20,5 +20,6 @@ Deno.serve(async (req) => {
       }
     }
   }
+  console.log("we answer");
   return new Response();
 });

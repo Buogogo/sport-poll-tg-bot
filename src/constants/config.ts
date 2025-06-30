@@ -27,6 +27,7 @@ export const DEFAULT_POLL_STATE: Omit<
   positiveOption: "",
   negativeOption: "",
   targetVotes: 0,
+  telegramMessageId: 0,
   votes: [],
 };
 

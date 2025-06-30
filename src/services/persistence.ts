@@ -27,7 +27,12 @@ async function kvSet<T>(key: Deno.KvKey, value: T): Promise<void> {
 }
 
 function migratePollState(loadedState: Record<string, unknown>) {
-  if (Array.isArray(loadedState.votes)) return loadedState;
+  if (Array.isArray(loadedState.votes)) {
+    if (typeof loadedState.telegramMessageId !== "number") {
+      return { ...loadedState, telegramMessageId: 0 };
+    }
+    return loadedState;
+  }
   const votes: Vote[] = [];
   if (loadedState.directVotes && typeof loadedState.directVotes === "object") {
     const directVotes = loadedState.directVotes as Record<
@@ -55,7 +60,7 @@ function migratePollState(loadedState: Record<string, unknown>) {
       );
     }
   }
-  return { ...loadedState, votes };
+  return { ...loadedState, votes, telegramMessageId: 0 };
 }
 
 export async function getPollState(): Promise<PollState> {

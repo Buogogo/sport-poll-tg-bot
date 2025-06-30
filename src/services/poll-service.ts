@@ -480,6 +480,7 @@ export async function resetPoll(): Promise<void> {
   const newState: PollState = {
     ...DEFAULT_POLL_STATE,
     votes: [],
+    telegramMessageId: 0,
   };
   await setPollState(newState);
 }

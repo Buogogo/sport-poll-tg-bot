@@ -28,7 +28,7 @@ export interface PollState {
   positiveOption: string;
   negativeOption: string;
   targetVotes: number;
-  telegramMessageId?: number;
+  telegramMessageId: number;
   statusMessageId?: number;
   votes: Vote[];
 }

@@ -1,7 +1,7 @@
-import { webhookCallback } from "grammy";
+import { BotError, webhookCallback } from "grammy";
 import { initializeBot } from "./services/bot.ts";
 import * as pollService from "./services/poll-service.ts";
-import { logger } from "./utils/logger.ts";
+import { errorHandler } from "./middleware/error.ts";
 
 const { bot, config } = initializeBot();
 const handleUpdate = webhookCallback(bot, "std/http");
@@ -14,8 +14,7 @@ Deno.serve(async (req) => {
       try {
         return await handleUpdate(req);
       } catch (err) {
-        logger.error(err);
-        return new Response("Error", { status: 500 });
+        return await errorHandler(err as BotError);
       }
     }
   }

@@ -76,10 +76,12 @@ export function initializeEventListeners() {
       await createStatusMessage();
       return;
     } else if (event.type === "poll_completed") {
-      // Set poll to inactive and save
+      // 1. Close the poll in Telegram
+      await stopPoll();
+      // 2. Set poll to inactive and save
       const pollState = { ...event.pollState, isActive: false };
       await pollService.setPollState(pollState);
-      await stopPoll();
+      // 3. Send completion message and update status
       await sendPollCompletionMessage();
       await updateStatusMessage();
       return;

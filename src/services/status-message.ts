@@ -96,20 +96,11 @@ export function initializeEventListeners() {
   });
   // Add listener for vote events to update status message
   pollVoteEvt.attach(async () => {
-    // Always update the status message after a vote
     await updateStatusMessage();
-    // Check for poll completion and handle it if needed
     const pollState = await pollService.getPollState();
     const currentVotes = pollState.votes.filter((v) => v.optionId === 0).length;
     if (pollState.isActive && currentVotes >= pollState.targetVotes) {
-      // 1. Close the poll in Telegram
-      await stopPoll();
-      // 2. Set poll to inactive and save
-      pollState.isActive = false;
-      await pollService.setPollState(pollState);
-      // 3. Send completion message and update status
-      await sendPollCompletionMessage();
-      await updateStatusMessage();
+      pollStateEvt.post({ type: "poll_completed", pollState });
     }
   });
 }

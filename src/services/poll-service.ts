@@ -199,7 +199,7 @@ export async function findLastVoteByRequesterId(
 export async function addVote(ctx: MyContext): Promise<void> {
   const pollState = await getPollState();
   if (!pollState.isActive) {
-    throw new UserFacingError(ctx, MESSAGES.POLL_CLOSED);
+    throw new UserFacingError(ctx, MESSAGES.NO_ACTIVE_POLL);
   }
   const { user, option_ids } = ctx.update.poll_answer!;
   const optionId = option_ids[0];
@@ -245,7 +245,7 @@ export async function addVotesBulk(
 ): Promise<string | void> {
   const pollState = await getPollState();
   if (!pollState.isActive) {
-    throw new UserFacingError(ctx, MESSAGES.POLL_CLOSED);
+    throw new UserFacingError(ctx, MESSAGES.NO_ACTIVE_POLL);
   }
   const remaining = pollState.targetVotes -
     pollState.votes.filter((v) => v.optionId === 0).length;
@@ -314,7 +314,7 @@ export async function revokeVoteByNumber(
 ): Promise<string> {
   const pollState = await getPollState();
   if (!pollState.isActive) {
-    throw new UserFacingError(ctx, MESSAGES.POLL_CLOSED);
+    throw new UserFacingError(ctx, MESSAGES.NO_ACTIVE_POLL);
   }
   if (voteNumber < 1) {
     throw new UserFacingError(ctx, MESSAGES.POLL_VOTE_NUMBER_TOO_LOW);
@@ -356,7 +356,7 @@ export async function revokeDirectVoteByUserId(
 ): Promise<void> {
   const pollState = await getPollState();
   if (!pollState.isActive) {
-    throw new UserFacingError(ctx, MESSAGES.POLL_CLOSED);
+    throw new UserFacingError(ctx, MESSAGES.NO_ACTIVE_POLL);
   }
   const idx = pollState.votes.findLastIndex((v) => v.userId === userId);
   if (idx === -1) return;

@@ -25,7 +25,6 @@ export const MESSAGES = {
 
   // Poll status
   NO_ACTIVE_POLL: "❌ Немає активного опитування",
-  POLL_CLOSED: "❌ Опитування закрито",
   POLL_COMPLETION: "⚽️ Місця на цей тиждень зайняті. Побачимось наступного!",
   POLL_SUCCESS: "✅ Опитування створено!",
   FIELD_SAVED: "✅ Збережено!",

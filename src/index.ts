@@ -7,7 +7,6 @@ const { bot, config } = initializeBot();
 const handleUpdate = webhookCallback(bot, "std/http");
 
 Deno.serve(async (req) => {
-  console.log("req came");
   if (req.method === "POST") {
     const url = new URL(req.url);
     if (url.pathname.slice(1) === config.botToken) {
@@ -20,6 +19,5 @@ Deno.serve(async (req) => {
       }
     }
   }
-  console.log("we answer");
   return new Response();
 });

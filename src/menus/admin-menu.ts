@@ -98,9 +98,8 @@ export const pollCreateMenu: Menu<MyContext> = new Menu<MyContext>(
     ctx.menu.update();
   }).row()
   .text(MESSAGES.MENU_CREATE, confirmPoll)
-  .text(MESSAGES.MENU_BACK, async (ctx: MyContext) => {
+  .text(MESSAGES.MENU_BACK, (ctx: MyContext) => {
     ctx.session.routeState = "main_menu";
-    await ctx.reply(MESSAGES.CANCELLED, { parse_mode: "MarkdownV2" });
     ctx.menu.nav("main");
   });
 
@@ -200,9 +199,8 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
   .text(MESSAGES.MENU_REFRESH, (ctx: MyContext) => {
     ctx.menu.update();
   }).row()
-  .text(MESSAGES.MENU_BACK, async (ctx: MyContext) => {
+  .text(MESSAGES.MENU_BACK, (ctx: MyContext) => {
     ctx.session.routeState = "weekly-settings";
-    await ctx.reply(MESSAGES.CANCELLED, { parse_mode: "MarkdownV2" });
     ctx.menu.nav("main");
   });
 

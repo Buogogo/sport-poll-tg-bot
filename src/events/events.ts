@@ -4,10 +4,6 @@ import {
   PollState,
   WeeklyConfig,
 } from "../constants/types.ts";
-import {
-  createStatusMessage,
-  updateStatusMessage,
-} from "../services/poll-service.ts";
 
 // New event types for unified scheduling
 export interface PollPostedEvent {
@@ -48,12 +44,3 @@ export type AppEvent =
   | PollTriggeredEvent;
 
 export const appEvt = Evt.create<AppEvent>();
-
-appEvt.attach(async (event) => {
-  if (event.type === "poll_posted") {
-    await createStatusMessage();
-    await updateStatusMessage();
-  } else if (event.type === "config_changed") {
-    await updateStatusMessage();
-  }
-});

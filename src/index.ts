@@ -1,6 +1,7 @@
 import { BotError, webhookCallback } from "grammy";
 import { initializeBot } from "./services/bot.ts";
 import { errorHandler } from "./middleware/error.ts";
+import "./events/handlers.ts";
 
 const { bot, config } = initializeBot();
 const handleUpdate = webhookCallback(bot, "std/http");

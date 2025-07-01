@@ -4,8 +4,9 @@ import timezone from "dayjs/plugin/timezone.js";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 import * as pollService from "./poll-service.ts";
-import { appEvt } from "../events/events.ts";
 import { logger } from "../utils/logger.ts";
+import { appEvt } from "../events/events.ts";
+import { setWeeklyConfig } from "./poll-service.ts";
 
 export async function getNextPollTime(): Promise<Date | null> {
   const config = await pollService.getWeeklyConfig();
@@ -31,7 +32,7 @@ export async function calculateNextPollTime(
   return poll.utc().toDate();
 }
 
-function logNextPollTime(time: Date) {
+export function logNextPollTime(time: Date) {
   const localTime = dayjs(time).tz("Europe/Kiev").format();
   logger.info(
     `Next poll scheduled for: ${time.toISOString()} (UTC), ${localTime} (Kyiv)`,
@@ -63,7 +64,6 @@ export async function initializeScheduler(): Promise<void> {
   if (!config.nextPollTime) {
     const nextTime = await calculateNextPollTime();
     config.nextPollTime = nextTime.toISOString();
-    appEvt.post({ type: "poll_scheduled", nextPollTime: nextTime });
     await pollService.setWeeklyConfig(config);
   } else {
     const now = new Date();
@@ -73,55 +73,13 @@ export async function initializeScheduler(): Promise<void> {
     }
   }
   if (shouldPost) {
-    appEvt.post({ type: "poll_triggered" });
     await createOrReplaceWeeklyPoll();
     const nextTime = await calculateNextPollTime();
     const config = await pollService.getWeeklyConfig();
     config.nextPollTime = nextTime.toISOString();
-    appEvt.post({ type: "poll_scheduled", nextPollTime: nextTime });
     await pollService.setWeeklyConfig(config);
   }
 }
-
-appEvt.attach(async (event) => {
-  if (event.type === "poll_scheduled" && event.nextPollTime) {
-    logNextPollTime(event.nextPollTime);
-  } else if (event.type === "poll_triggered") {
-    logger.info("Poll triggered via event");
-  } else if (event.type === "poll_posted") {
-    const nextPollTime = await calculateNextPollTime();
-    await pollService.setWeeklyConfig({
-      nextPollTime: nextPollTime.toISOString(),
-    });
-    appEvt.post({ type: "poll_scheduled", nextPollTime });
-  } else if (event.type === "config_changed") {
-    const config = event.config;
-    if (
-      "enabled" in config &&
-      (config as import("../constants/types.ts").WeeklyConfig).enabled
-    ) {
-      const nextPollTime = await calculateNextPollTime();
-      await pollService.setWeeklyConfig({
-        nextPollTime: nextPollTime.toISOString(),
-      });
-      appEvt.post({ type: "poll_scheduled", nextPollTime });
-    }
-  } else if (event.type === "poll_enabled") {
-    const config = event.config;
-    if (config.enabled) {
-      const nextPollTime = await calculateNextPollTime();
-      await pollService.setWeeklyConfig({
-        nextPollTime: nextPollTime.toISOString(),
-      });
-      appEvt.post({ type: "poll_scheduled", nextPollTime });
-    }
-  } else if (event.type === "poll_disabled") {
-    const config = event.config;
-    if (!config.enabled) {
-      pollService.resetPoll();
-    }
-  }
-});
 
 Deno.cron("Check and trigger weekly poll", "*/10 * * * *", async () => {
   const config = await pollService.getWeeklyConfig();
@@ -130,12 +88,18 @@ Deno.cron("Check and trigger weekly poll", "*/10 * * * *", async () => {
   const scheduled = new Date(config.nextPollTime);
   if (now >= scheduled) {
     logger.info("[cron] Time to post the weekly poll!");
-    appEvt.post({ type: "poll_triggered" });
     await createOrReplaceWeeklyPoll();
     const nextTime = await calculateNextPollTime(true, scheduled);
-    appEvt.post({ type: "poll_scheduled", nextPollTime: nextTime });
     const config = await pollService.getWeeklyConfig();
     config.nextPollTime = nextTime.toISOString();
     await pollService.setWeeklyConfig(config);
   }
 });
+
+export async function scheduleNextPoll() {
+  const nextPollTime = await calculateNextPollTime();
+  await setWeeklyConfig({
+    nextPollTime: nextPollTime.toISOString(),
+  });
+  appEvt.post({ type: "poll_scheduled", nextPollTime });
+}

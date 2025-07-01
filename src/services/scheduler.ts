@@ -4,7 +4,7 @@ import timezone from "dayjs/plugin/timezone.js";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 import * as pollService from "./poll-service.ts";
-import { schedulerEvt } from "../events/events.ts";
+import { configUpdateEvt, schedulerEvt } from "../events/events.ts";
 import { logger } from "../utils/logger.ts";
 
 export async function getNextPollTime(): Promise<Date | null> {
@@ -112,5 +112,16 @@ Deno.cron("Check and trigger weekly poll", "*/10 * * * *", async () => {
     config.nextPollTime = nextTime.toISOString();
     schedulerEvt.post({ type: "poll_scheduled", nextPollTime: nextTime });
     await pollService.setWeeklyConfig(config);
+  }
+});
+
+configUpdateEvt.attach(async (event) => {
+  if (event.type === "weekly_config_updated") {
+    const config = event.config as import("../constants/types.ts").WeeklyConfig;
+    if (event.shouldReschedule && config.enabled) {
+      const nextPollTime = await calculateNextPollTime();
+      config.nextPollTime = nextPollTime.toISOString();
+      await pollService.setWeeklyConfig({ nextPollTime: config.nextPollTime });
+    }
   }
 });

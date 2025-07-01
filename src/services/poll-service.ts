@@ -13,7 +13,11 @@ import { Vote } from "../models/vote.ts";
 import { parseRevokeCommand, parseVoteCommand } from "../utils/utils.ts";
 import * as persistence from "./persistence.ts";
 import * as scheduler from "./scheduler.ts";
-import { pollStateEvt, pollVoteEvt } from "../events/events.ts";
+import {
+  configUpdateEvt,
+  pollStateEvt,
+  pollVoteEvt,
+} from "../events/events.ts";
 
 // Bot and config references (will be set by bot service)
 let botInstance: Bot<MyContext> | null = null;
@@ -54,17 +58,24 @@ export async function setWeeklyConfig(
 ): Promise<void> {
   const config = await persistence.getWeeklyConfig();
   Object.assign(config, updates);
+  let shouldReschedule = false;
   if (
-    ((typeof updates.enabled !== "undefined" && updates.enabled) ||
-      config.enabled) &&
-    (typeof updates.startHour !== "undefined" ||
-      typeof updates.randomWindowMinutes !== "undefined" ||
-      typeof updates.dayOfWeek !== "undefined")
+    (typeof updates.enabled !== "undefined" && updates.enabled) ||
+    (
+      config.enabled &&
+      (typeof updates.startHour !== "undefined" ||
+        typeof updates.randomWindowMinutes !== "undefined" ||
+        typeof updates.dayOfWeek !== "undefined")
+    )
   ) {
-    const nextPollTime = await scheduler.calculateNextPollTime();
-    config.nextPollTime = (await nextPollTime).toISOString();
+    shouldReschedule = true;
   }
   await persistence.setWeeklyConfig(config);
+  configUpdateEvt.post({
+    type: "weekly_config_updated",
+    config,
+    shouldReschedule,
+  });
 }
 
 // --- Instant Poll Config ---

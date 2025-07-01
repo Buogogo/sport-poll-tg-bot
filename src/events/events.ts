@@ -21,6 +21,7 @@ export interface PollStateEvent {
 export interface ConfigUpdateEvent {
   type: "weekly_config_updated" | "instant_poll_config_updated";
   config: WeeklyConfig | InstantPollConfig;
+  shouldReschedule?: boolean;
 }
 
 export interface StatusMessageEvent {

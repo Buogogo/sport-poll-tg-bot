@@ -55,10 +55,11 @@ export async function setWeeklyConfig(
   const config = await persistence.getWeeklyConfig();
   Object.assign(config, updates);
   if (
-    (typeof updates.enabled !== "undefined" && updates.enabled) ||
-    typeof updates.startHour !== "undefined" ||
-    typeof updates.randomWindowMinutes !== "undefined" ||
-    typeof updates.dayOfWeek !== "undefined"
+    ((typeof updates.enabled !== "undefined" && updates.enabled) ||
+      config.enabled) &&
+    (typeof updates.startHour !== "undefined" ||
+      typeof updates.randomWindowMinutes !== "undefined" ||
+      typeof updates.dayOfWeek !== "undefined")
   ) {
     const nextPollTime = await scheduler.calculateNextPollTime();
     config.nextPollTime = (await nextPollTime).toISOString();

@@ -2,7 +2,6 @@ import { appEvt } from "./events.ts";
 import {
   createStatusMessage,
   isCompleted,
-  resetPoll,
   sendPollCompletionMessage,
   setPollState,
   stopPoll,
@@ -24,7 +23,6 @@ appEvt.attach(async (event) => {
       break;
     case "poll_started": {
       await createStatusMessage();
-      await scheduleNextPoll();
       break;
     }
     case "vote_added": {
@@ -39,17 +37,16 @@ appEvt.attach(async (event) => {
       break;
     }
     case "poll_completed": {
-      await sendPollCompletionMessage();
       await stopPoll();
+      await sendPollCompletionMessage();
       await setPollState({ isActive: false } as PollState);
+      await scheduleNextPoll({ forNextWeek: true });
       break;
     }
-    case "weekly_schedule_changed": {
+    case "weekly_schedule_config_changed": {
       const config = event.config;
       if (config.enabled) {
         await scheduleNextPoll();
-      } else {
-        resetPoll();
       }
       break;
     }

@@ -1,8 +1,8 @@
 import { Evt } from "evt";
 import { PollState, WeeklyConfig } from "../constants/types.ts";
 
-export interface WeeklyScheduleChangedEvent {
-  type: "weekly_schedule_changed";
+export interface WeeklyScheduleConfigChangedEvent {
+  type: "weekly_schedule_config_changed";
   config: WeeklyConfig;
 }
 
@@ -42,7 +42,7 @@ export interface PollStartedEvent {
 }
 
 export type AppEvent =
-  | WeeklyScheduleChangedEvent
+  | WeeklyScheduleConfigChangedEvent
   | PollScheduledEvent
   | PollTriggeredEvent
   | VoteAddedEvent

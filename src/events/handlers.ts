@@ -1,11 +1,16 @@
 import { appEvt } from "./events.ts";
 import {
   createStatusMessage,
+  isCompleted,
   resetPoll,
+  sendPollCompletionMessage,
+  setPollState,
+  stopPoll,
   updateStatusMessage,
 } from "../services/poll-service.ts";
 import { logNextPollTime, scheduleNextPoll } from "../services/scheduler.ts";
 import { logger } from "../utils/logger.ts";
+import { PollState } from "../constants/types.ts";
 
 appEvt.attach(async (event) => {
   switch (event.type) {
@@ -22,31 +27,28 @@ appEvt.attach(async (event) => {
       await scheduleNextPoll();
       break;
     }
-    case "vote_added":
+    case "vote_added": {
+      await updateStatusMessage();
+      if (await isCompleted()) {
+        appEvt.post({ type: "poll_completed", pollState: event.pollState });
+      }
+      break;
+    }
     case "vote_revoked": {
       await updateStatusMessage();
       break;
     }
-    case "config_changed": {
-      const config = event.config;
-      if (
-        "enabled" in config &&
-        (config as import("../constants/types.ts").WeeklyConfig).enabled
-      ) {
-        await scheduleNextPoll();
-      }
+    case "poll_completed": {
+      await sendPollCompletionMessage();
+      await stopPoll();
+      await setPollState({ isActive: false } as PollState);
       break;
     }
-    case "poll_enabled": {
+    case "weekly_schedule_changed": {
       const config = event.config;
       if (config.enabled) {
         await scheduleNextPoll();
-      }
-      break;
-    }
-    case "poll_disabled": {
-      const config = event.config;
-      if (!config.enabled) {
+      } else {
         resetPoll();
       }
       break;

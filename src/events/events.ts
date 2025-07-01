@@ -1,23 +1,14 @@
 import { Evt } from "evt";
-import {
-  InstantPollConfig,
-  PollState,
-  WeeklyConfig,
-} from "../constants/types.ts";
+import { PollState, WeeklyConfig } from "../constants/types.ts";
 
-export interface ConfigChangedEvent {
-  type: "config_changed";
-  config: WeeklyConfig | InstantPollConfig;
-}
-
-export interface PollEnabledEvent {
-  type: "poll_enabled";
+export interface WeeklyScheduleChangedEvent {
+  type: "weekly_schedule_changed";
   config: WeeklyConfig;
 }
 
-export interface PollDisabledEvent {
-  type: "poll_disabled";
-  config: WeeklyConfig;
+export interface PollCompletedEvent {
+  type: "poll_completed";
+  pollState: PollState;
 }
 
 export interface PollScheduledEvent {
@@ -51,13 +42,12 @@ export interface PollStartedEvent {
 }
 
 export type AppEvent =
-  | ConfigChangedEvent
-  | PollEnabledEvent
-  | PollDisabledEvent
+  | WeeklyScheduleChangedEvent
   | PollScheduledEvent
   | PollTriggeredEvent
   | VoteAddedEvent
   | VoteRevokedEvent
-  | PollStartedEvent;
+  | PollStartedEvent
+  | PollCompletedEvent;
 
 export const appEvt = Evt.create<AppEvent>();

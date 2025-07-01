@@ -55,9 +55,9 @@ export async function setWeeklyConfig(
 ): Promise<void> {
   const config = await persistence.getWeeklyConfig();
   Object.assign(config, updates);
-  let shouldReschedule = false;
+  await persistence.setWeeklyConfig(config);
   if (
-    (typeof updates.enabled !== "undefined" && updates.enabled) ||
+    typeof updates.enabled !== "undefined" ||
     (
       config.enabled &&
       (typeof updates.startHour !== "undefined" ||
@@ -65,18 +65,7 @@ export async function setWeeklyConfig(
         typeof updates.dayOfWeek !== "undefined")
     )
   ) {
-    shouldReschedule = true;
-  }
-  await persistence.setWeeklyConfig(config);
-  appEvt.post({ type: "config_changed", config });
-  if (shouldReschedule) {
-    if (typeof updates.enabled !== "undefined") {
-      if (updates.enabled) {
-        appEvt.post({ type: "poll_enabled", config });
-      } else {
-        appEvt.post({ type: "poll_disabled", config });
-      }
-    }
+    appEvt.post({ type: "weekly_schedule_changed", config });
   }
 }
 
@@ -452,7 +441,12 @@ export async function handleVote(ctx: MyContext): Promise<void> {
   await updateStatusMessage();
 }
 
-export function resetPoll(): void {
+export async function resetPoll(): Promise<void> {
+  const pollState = await getPollState();
+  if (pollState.isActive) {
+    pollState.isActive = false;
+    await setPollState(pollState);
+  }
 }
 
 export async function closePollLogic(): Promise<

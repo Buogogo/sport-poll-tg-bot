@@ -66,32 +66,44 @@ export const MESSAGES = {
 
   // Dynamic messages
   TOO_MANY_VOTES: (count: number, remaining: number) =>
-    `❌ Неможливо додати ${count} голосів. Залишилось лише ${remaining} до досягнення цілі`,
+    `❌ Неможливо додати ${
+      escapeMarkdownV2(count.toString())
+    } голосів. Залишилось лише ${
+      escapeMarkdownV2(remaining.toString())
+    } до досягнення цілі`,
   VOTE_NOT_FOUND: (voteNumber: number) =>
-    `❌ Голос з номером ${voteNumber} не знайдено`,
+    `❌ Голос з номером ${escapeMarkdownV2(voteNumber.toString())} не знайдено`,
   VOTE_REVOKED_SUCCESS: (voteNumber: number, userName: string) =>
-    `✅ Голос #${voteNumber} (${userName}) відкликано`,
-
-  // Static messages (with emoji)
-  BOT_STARTED: "🤖 SportPollBot запущено!",
-  DEFAULT_ERROR: "🫠 Упс! Шось не так",
-  VOTE_ADDED: (text: string) => `✅ Додано ${text}`,
+    `✅ Голос ${escapeMarkdownV2(voteNumber.toString())} (${
+      escapeMarkdownV2(userName)
+    }) відкликано`,
+  VOTE_ADDED: (text: string) => `✅ Додано ${escapeMarkdownV2(text)}`,
   NO_VOTES_TO_REVOKE: "❌ Немає голосів для скасування",
   ANONYMOUS_VOTE_SINGLE: "1 анонім",
-  ANONYMOUS_VOTES_MULTIPLE: (count: number) => `x${count} аноніми`,
-  NAMED_VOTE_SINGLE: (name: string) => `голос за ${name}`,
-  NAMED_VOTES_MULTIPLE: (names: string) => `голоси за: ${names}`,
-  INVITED: (name: string) => `запросив ${name}`,
+  ANONYMOUS_VOTES_MULTIPLE: (count: number) =>
+    `x${escapeMarkdownV2(count.toString())} аноніми`,
+  NAMED_VOTE_SINGLE: (name: string) => `голос за ${escapeMarkdownV2(name)}`,
+  NAMED_VOTES_MULTIPLE: (names: string) =>
+    `голоси за: ${escapeMarkdownV2(names)}`,
+  INVITED: (name: string) => `запросив ${escapeMarkdownV2(name)}`,
   POLL_CLOSED_SUCCESS: "✅ Опитування закрито",
   EDIT_PROMPT: (fieldName: string, currentValue: string) =>
-    `✏️ **Редагування: ${fieldName}**\n\nПоточне значення: \`${currentValue}\`\n\nВведіть нове значення:`,
+    `✏️ *Редагування: ${escapeMarkdownV2(fieldName)}*\n\nПоточне значення: \`${
+      escapeMarkdownV2(currentValue, { code: true })
+    }\`\n\nВведіть нове значення:`,
   POLL_CREATE_TEXT: (pollData: {
     question: string;
     positiveOption: string;
     negativeOption: string;
     targetVotes: number;
   }) =>
-    `📊 Створення опитування\n\nПитання: ${pollData.question}\nВаріант ЗА: ${pollData.positiveOption}\nВаріант ПРОТИ: ${pollData.negativeOption}\nЦіль: ${pollData.targetVotes} голосів`,
+    `📊 Створення опитування\n\nПитання: ${
+      escapeMarkdownV2(pollData.question)
+    }\nВаріант ЗА: ${
+      escapeMarkdownV2(pollData.positiveOption)
+    }\nВаріант ПРОТИ: ${escapeMarkdownV2(pollData.negativeOption)}\nЦіль: ${
+      escapeMarkdownV2(pollData.targetVotes.toString())
+    } голосів`,
   WEEKLY_SETTINGS_TEXT: (config: {
     question: string;
     positiveOption: string;
@@ -104,19 +116,31 @@ export const MESSAGES = {
     const dayName = DAYS[config.dayOfWeek];
     const timeStr = `${config.startHour.toString().padStart(2, "0")}:00`;
     const status = config.enabled ? "✅ Увімкнено" : "❌ Вимкнено";
-    return `⚙️ Тижневі налаштування\n\nПитання: ${config.question}\nВаріант ЗА: ${config.positiveOption}\nВаріант ПРОТИ: ${config.negativeOption}\nЦіль: ${config.targetVotes} голосів\nДень: ${dayName}\nЧас: ${timeStr}\nСтатус: ${status}`;
+    return `⚙️ Тижневі налаштування\n\nПитання: ${
+      escapeMarkdownV2(config.question)
+    }\nВаріант ЗА: ${escapeMarkdownV2(config.positiveOption)}\nВаріант ПРОТИ: ${
+      escapeMarkdownV2(config.negativeOption)
+    }\nЦіль: ${
+      escapeMarkdownV2(config.targetVotes.toString())
+    } голосів\nДень: ${escapeMarkdownV2(dayName)}\nЧас: ${
+      escapeMarkdownV2(timeStr)
+    }\nСтатус: ${escapeMarkdownV2(status)}`;
   },
 
   // Status message components
-  STATUS_HEADER: "📊 **Статус опитування**\n\n",
-  STATUS_COMPLETED: "✅ **Опитування завершено!**\n",
-  STATUS_ACTIVE: "🗳️ **Опитування активне**\n",
+  STATUS_HEADER: "📊 *Статус опитування*\n\n",
+  STATUS_COMPLETED: "✅ *Опитування завершено!*\n",
+  STATUS_ACTIVE: "🗳️ *Опитування активне*\n",
   STATUS_TARGET: (targetVotes: number) =>
-    `🎯 Ціль: **${targetVotes}** голосів\n`,
+    `🎯 Ціль: *${escapeMarkdownV2(targetVotes.toString())}* голосів\n`,
   STATUS_CURRENT: (currentVotes: number) =>
-    `📊 Поточний рахунок: **${currentVotes}** голосів\n`,
+    `📊 Поточний рахунок: *${
+      escapeMarkdownV2(currentVotes.toString())
+    }* голосів\n`,
   STATUS_REMAINING: (remaining: number) =>
-    `⏳ Залишилось: **${remaining}** голосів\n\n💡 **Як голосувати:**\n`,
+    `⏳ Залишилось: *${
+      escapeMarkdownV2(remaining.toString())
+    }* голосів\n\n💡 *Як голосувати:*\n`,
   STATUS_INSTRUCTIONS: [
     "• Використовуйте опитування вище для особистого голосу",
     "• Або використовуйте команди:",
@@ -125,12 +149,14 @@ export const MESSAGES = {
     "  `/+ Петро Іван` - додати голоси від імені людей",
     "  `/- [номер]` - відкликати голос за номером зі списку\n",
   ].join("\n"),
-  STATUS_THANKS: "\n⚽️ **Дякуємо всім за участь!**\n\n",
-  STATUS_VOTES_LIST: "📋 **Список голосів ЗА:**\n",
+  STATUS_THANKS: "\n⚽️ *Дякуємо всім за участь!*\n\n",
+  STATUS_VOTES_LIST: "📋 *Список голосів ЗА:*\n",
   STATUS_VOTE_ITEM: (index: number, userName: string, requesterName?: string) =>
     requesterName
-      ? `${index}. ${userName} (запросив ${requesterName})`
-      : `${index}. ${userName}`,
+      ? `${escapeMarkdownV2(index.toString())}. ${
+        escapeMarkdownV2(userName)
+      } (запросив ${escapeMarkdownV2(requesterName)})`
+      : `${escapeMarkdownV2(index.toString())}. ${escapeMarkdownV2(userName)}`,
 
   // Vote revocation errors
   DIRECT_VOTE_REVOKE_ERROR:
@@ -157,13 +183,23 @@ export const MESSAGES = {
   MENU_DISABLED: "🔴 Вимкнено",
   MENU_RANDOM_OFF: "вимк",
   MENU_RANDOM_MINUTES: (minutes: number) => `${minutes}хв`,
-  MENU_LABEL_QUESTION: (question: string) => `✏️ Питання: ${question}`,
-  MENU_LABEL_POSITIVE: (positiveOption: string) => `✅ ЗА: ${positiveOption}`,
+  MENU_LABEL_QUESTION: (question: string) =>
+    `✏️ Питання: ${escapeMarkdownV2(question)}`,
+  MENU_LABEL_POSITIVE: (positiveOption: string) =>
+    `✅ ЗА: ${escapeMarkdownV2(positiveOption)}`,
   MENU_LABEL_NEGATIVE: (negativeOption: string) =>
-    `❌ ПРОТИ: ${negativeOption}`,
-  MENU_LABEL_TARGET: (targetVotes: number) => `🎯 Ціль: ${targetVotes}`,
-  MENU_LABEL_DAY: (day: string) => `📅 День: ${day}`,
-  MENU_LABEL_TIME: (hour: number) => `🕰️ Час: ${hour}:00`,
+    `❌ ПРОТИ: ${escapeMarkdownV2(negativeOption)}`,
+  MENU_LABEL_TARGET: (targetVotes: number) =>
+    `🎯 Ціль: ${escapeMarkdownV2(targetVotes.toString())}`,
+  MENU_LABEL_DAY: (day: string) => `📅 День: ${escapeMarkdownV2(day)}`,
+  MENU_LABEL_TIME: (hour: number) =>
+    `🕰️ Час: ${escapeMarkdownV2(hour.toString())}:00`,
+  REBOOT_SUCCESS: "♻️ Всі дані очищено\. Перезапуск завершено\.",
+  CANCELLED: "❌ Скасовано",
+  ALREADY_UPDATED: "Вже оновлено!",
+  ANONYMOUS_NAME: "Анонім",
+  UNKNOWN_DAY: "???",
+  DEFAULT_ERROR: "🫠 Упс! Шось не так",
 } as const;
 
 export const DAYS: Record<number, string> = {
@@ -175,3 +211,16 @@ export const DAYS: Record<number, string> = {
   5: "П'ятниця",
   6: "Субота",
 };
+
+// Utility to escape MarkdownV2 special characters
+type EscapeOptions = { code?: boolean };
+export function escapeMarkdownV2(
+  text: string,
+  options: EscapeOptions = {},
+): string {
+  // Telegram MarkdownV2 special chars
+  const chars = options.code
+    ? /[`\\]/g // only backtick and backslash in code
+    : /[_*\[\]()~`>#+\-=|{}.!\\]/g;
+  return text.replace(chars, (c) => `\\${c}`);
+}

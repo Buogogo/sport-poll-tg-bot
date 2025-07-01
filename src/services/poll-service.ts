@@ -117,7 +117,11 @@ export async function buildStatusMessage(): Promise<string> {
   const votes = pollState.votes.filter((v) => v.optionId === 0);
   status += MESSAGES.STATUS_VOTES_LIST +
     votes.map((v, i) =>
-      MESSAGES.STATUS_VOTE_ITEM(i + 1, v.userName ?? "Анонім", v.requesterName)
+      MESSAGES.STATUS_VOTE_ITEM(
+        i + 1,
+        v.userName ?? MESSAGES.ANONYMOUS_NAME,
+        v.requesterName,
+      )
     ).join("\n") + (votes.length ? "\n" : "");
   return status;
 }
@@ -170,7 +174,7 @@ export function* iteratePositiveVotesSync(
           type: "direct",
           number: currentNumber++,
           userId: v.userId,
-          userName: v.userName ?? "Анонім",
+          userName: v.userName ?? MESSAGES.ANONYMOUS_NAME,
           vote: v,
         };
       } else {
@@ -178,7 +182,7 @@ export function* iteratePositiveVotesSync(
           type: "external",
           number: currentNumber++,
           index: i,
-          userName: v.userName ?? "Анонім",
+          userName: v.userName ?? MESSAGES.ANONYMOUS_NAME,
           vote: v,
         };
       }
@@ -229,7 +233,7 @@ export async function addVote(ctx: MyContext): Promise<void> {
   const vote = new Vote(
     optionId,
     user!.id,
-    user!.first_name || "Анонім",
+    user!.first_name || MESSAGES.ANONYMOUS_NAME,
     undefined,
     undefined,
   );
@@ -239,7 +243,7 @@ export async function addVote(ctx: MyContext): Promise<void> {
     type: "vote_added",
     pollState,
     userId: user!.id,
-    userName: user!.first_name || "Анонім",
+    userName: user!.first_name || MESSAGES.ANONYMOUS_NAME,
     voteType: "direct",
   });
 }
@@ -261,7 +265,7 @@ export async function addVotesBulk(
       new Vote(
         0,
         undefined,
-        name || "Анонім",
+        name || MESSAGES.ANONYMOUS_NAME,
         ctx.from?.id,
         ctx.from?.first_name,
       )
@@ -271,7 +275,7 @@ export async function addVotesBulk(
       new Vote(
         0,
         undefined,
-        "Анонім",
+        MESSAGES.ANONYMOUS_NAME,
         ctx.from?.id,
         ctx.from?.first_name,
       )
@@ -281,7 +285,7 @@ export async function addVotesBulk(
       new Vote(
         0,
         undefined,
-        "Анонім",
+        MESSAGES.ANONYMOUS_NAME,
         ctx.from?.id,
         ctx.from?.first_name,
       ),
@@ -344,7 +348,10 @@ export async function revokeVoteByNumber(
     userName: vote.requesterName,
     voteType: "external",
   });
-  return MESSAGES.VOTE_REVOKED_SUCCESS(voteNumber, vote.userName ?? "Анонім");
+  return MESSAGES.VOTE_REVOKED_SUCCESS(
+    voteNumber,
+    vote.userName ?? MESSAGES.ANONYMOUS_NAME,
+  );
 }
 
 export async function revokeDirectVoteByUserId(
@@ -501,7 +508,7 @@ export async function updateStatusMessage(): Promise<void> {
     configInstance.targetGroupChatId,
     statusMessageId,
     statusText,
-    { parse_mode: "Markdown" },
+    { parse_mode: "MarkdownV2" },
   );
 }
 
@@ -510,7 +517,7 @@ export async function createStatusMessage(): Promise<void> {
   const statusMessage = await botInstance.api.sendMessage(
     configInstance.targetGroupChatId,
     await buildStatusMessage(),
-    { parse_mode: "Markdown" },
+    { parse_mode: "MarkdownV2" },
   );
   const pollState = await getPollState();
   pollState.statusMessageId = statusMessage.message_id;

@@ -106,7 +106,7 @@ export const pollCreateMenu: Menu<MyContext> = new Menu<MyContext>(
     if (ctx.session.editTarget) {
       ctx.session.editTarget = undefined;
       ctx.session.editContext = undefined;
-      await ctx.reply("Скасовано");
+      await ctx.reply(MESSAGES.CANCELLED, { parse_mode: "MarkdownV2" });
     }
     ctx.menu.nav("main");
   });
@@ -169,7 +169,7 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
   .text(
     async () =>
       MESSAGES.MENU_LABEL_DAY(
-        DAYS[(await pollService.getWeeklyConfig()).dayOfWeek] || "???",
+        DAYS[(await pollService.getWeeklyConfig()).dayOfWeek],
       ),
     (ctx: MyContext) => ctx.menu.nav("day-selector"),
   ).row()
@@ -217,7 +217,7 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
     if (ctx.session.editTarget) {
       ctx.session.editTarget = undefined;
       ctx.session.editContext = undefined;
-      await ctx.reply("Скасовано");
+      await ctx.reply(MESSAGES.CANCELLED, { parse_mode: "MarkdownV2" });
     }
     ctx.menu.nav("main");
   });

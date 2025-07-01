@@ -2,6 +2,7 @@ import * as Sentry from "sentry";
 import { BotError } from "grammy";
 import { UserFacingError } from "../constants/types.ts";
 import { logger } from "../utils/logger.ts";
+import { MESSAGES } from "../constants/messages.ts";
 
 export const errorHandler = async (
   error: BotError,
@@ -10,7 +11,7 @@ export const errorHandler = async (
     logger.info("Menu refresh ignored: message is not modified");
     if (error.ctx.callbackQuery) {
       try {
-        await error.ctx.answerCallbackQuery("Вже оновлено!");
+        await error.ctx.answerCallbackQuery(MESSAGES["ALREADY_UPDATED"]);
       } catch (e) {
         logger.error("Failed to answer callback query", { e });
       }

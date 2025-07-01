@@ -4,7 +4,7 @@ import timezone from "dayjs/plugin/timezone.js";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 import * as pollService from "./poll-service.ts";
-import { configUpdateEvt, schedulerEvt } from "../events/events.ts";
+import { appEvt } from "../events/events.ts";
 import { logger } from "../utils/logger.ts";
 
 export async function getNextPollTime(): Promise<Date | null> {
@@ -13,17 +13,21 @@ export async function getNextPollTime(): Promise<Date | null> {
   return nextPollTime ? new Date(nextPollTime) : null;
 }
 
-export async function calculateNextPollTime(): Promise<Date> {
+export async function calculateNextPollTime(
+  forNextWeek = false,
+  baseDate?: Date,
+): Promise<Date> {
   const config = await pollService.getWeeklyConfig();
   const { dayOfWeek, startHour } = config;
-  const now = dayjs().tz("Europe/Kiev");
-  // Pick a random 10-minute slot
   const tenMinuteSlots = [0, 10, 20, 30, 40, 50];
   const minute =
     tenMinuteSlots[Math.floor(Math.random() * tenMinuteSlots.length)];
-  let poll = now.day(dayOfWeek).hour(startHour).minute(minute).second(0)
+  const base = baseDate
+    ? dayjs(baseDate).tz("Europe/Kiev")
+    : dayjs().tz("Europe/Kiev");
+  let poll = base.day(dayOfWeek).hour(startHour).minute(minute).second(0)
     .millisecond(0);
-  if (poll.isBefore(now)) poll = poll.add(1, "week");
+  if (forNextWeek || poll.isBefore(base)) poll = poll.add(1, "week");
   return poll.utc().toDate();
 }
 
@@ -37,7 +41,7 @@ function logNextPollTime(time: Date) {
 export async function createOrReplaceWeeklyPoll(): Promise<void> {
   logger.info("Creating or replacing weekly poll...");
   if (await pollService.isPollActive()) {
-    await pollService.resetPoll();
+    pollService.resetPoll();
   }
   const { question, positiveOption, negativeOption, targetVotes } =
     await pollService.createWeeklyPoll();
@@ -50,7 +54,6 @@ export async function createOrReplaceWeeklyPoll(): Promise<void> {
   logger.info("Poll created.");
 }
 
-// On startup, call this to ensure missed polls are posted and scheduling is started
 export async function initializeScheduler(): Promise<void> {
   const config = await pollService.getWeeklyConfig();
   if (!config.enabled) {
@@ -60,7 +63,7 @@ export async function initializeScheduler(): Promise<void> {
   if (!config.nextPollTime) {
     const nextTime = await calculateNextPollTime();
     config.nextPollTime = nextTime.toISOString();
-    schedulerEvt.post({ type: "poll_scheduled", nextPollTime: nextTime });
+    appEvt.post({ type: "poll_scheduled", nextPollTime: nextTime });
     await pollService.setWeeklyConfig(config);
   } else {
     const now = new Date();
@@ -70,58 +73,69 @@ export async function initializeScheduler(): Promise<void> {
     }
   }
   if (shouldPost) {
-    schedulerEvt.post({ type: "poll_triggered" });
+    appEvt.post({ type: "poll_triggered" });
     await createOrReplaceWeeklyPoll();
     const nextTime = await calculateNextPollTime();
     const config = await pollService.getWeeklyConfig();
     config.nextPollTime = nextTime.toISOString();
-    schedulerEvt.post({ type: "poll_scheduled", nextPollTime: nextTime });
+    appEvt.post({ type: "poll_scheduled", nextPollTime: nextTime });
     await pollService.setWeeklyConfig(config);
   }
 }
 
-// Event listener for scheduler events
-export function initializeSchedulerEventListeners() {
-  schedulerEvt.attach((event) => {
-    if (event.type === "poll_scheduled" && event.nextPollTime) {
-      logNextPollTime(event.nextPollTime);
-    } else if (event.type === "poll_triggered") {
-      logger.info("Poll triggered via event");
+appEvt.attach(async (event) => {
+  if (event.type === "poll_scheduled" && event.nextPollTime) {
+    logNextPollTime(event.nextPollTime);
+  } else if (event.type === "poll_triggered") {
+    logger.info("Poll triggered via event");
+  } else if (event.type === "poll_posted") {
+    const nextPollTime = await calculateNextPollTime();
+    await pollService.setWeeklyConfig({
+      nextPollTime: nextPollTime.toISOString(),
+    });
+    appEvt.post({ type: "poll_scheduled", nextPollTime });
+  } else if (event.type === "config_changed") {
+    const config = event.config;
+    if (
+      "enabled" in config &&
+      (config as import("../constants/types.ts").WeeklyConfig).enabled
+    ) {
+      const nextPollTime = await calculateNextPollTime();
+      await pollService.setWeeklyConfig({
+        nextPollTime: nextPollTime.toISOString(),
+      });
+      appEvt.post({ type: "poll_scheduled", nextPollTime });
     }
-  });
-}
+  } else if (event.type === "poll_enabled") {
+    const config = event.config;
+    if (config.enabled) {
+      const nextPollTime = await calculateNextPollTime();
+      await pollService.setWeeklyConfig({
+        nextPollTime: nextPollTime.toISOString(),
+      });
+      appEvt.post({ type: "poll_scheduled", nextPollTime });
+    }
+  } else if (event.type === "poll_disabled") {
+    const config = event.config;
+    if (!config.enabled) {
+      pollService.resetPoll();
+    }
+  }
+});
 
-// --- Deno.cron: schedule poll check every minute ---
 Deno.cron("Check and trigger weekly poll", "*/10 * * * *", async () => {
   const config = await pollService.getWeeklyConfig();
   if (!config.enabled || !config.nextPollTime) return;
   const now = new Date();
   const scheduled = new Date(config.nextPollTime);
-  // Only trigger if now matches scheduled time exactly (to the minute)
-  if (
-    now.getUTCFullYear() === scheduled.getUTCFullYear() &&
-    now.getUTCMonth() === scheduled.getUTCMonth() &&
-    now.getUTCDate() === scheduled.getUTCDate() &&
-    now.getUTCHours() === scheduled.getUTCHours() &&
-    now.getUTCMinutes() === scheduled.getUTCMinutes()
-  ) {
+  if (now >= scheduled) {
     logger.info("[cron] Time to post the weekly poll!");
-    schedulerEvt.post({ type: "poll_triggered" });
+    appEvt.post({ type: "poll_triggered" });
     await createOrReplaceWeeklyPoll();
-    const nextTime = await calculateNextPollTime();
+    const nextTime = await calculateNextPollTime(true, scheduled);
+    appEvt.post({ type: "poll_scheduled", nextPollTime: nextTime });
+    const config = await pollService.getWeeklyConfig();
     config.nextPollTime = nextTime.toISOString();
-    schedulerEvt.post({ type: "poll_scheduled", nextPollTime: nextTime });
     await pollService.setWeeklyConfig(config);
-  }
-});
-
-configUpdateEvt.attach(async (event) => {
-  if (event.type === "weekly_config_updated") {
-    const config = event.config as import("../constants/types.ts").WeeklyConfig;
-    if (event.shouldReschedule && config.enabled) {
-      const nextPollTime = await calculateNextPollTime();
-      config.nextPollTime = nextPollTime.toISOString();
-      await pollService.setWeeklyConfig({ nextPollTime: config.nextPollTime });
-    }
   }
 });

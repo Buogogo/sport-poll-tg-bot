@@ -5,7 +5,7 @@ export class Vote {
   public readonly timestamp: Date;
 
   constructor(
-    public readonly optionId: number, // 0 = positive, 1 = negative
+    public readonly optionId: number,
     public readonly userId?: number,
     public readonly userName?: string,
     public readonly requesterId?: number,

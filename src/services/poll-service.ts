@@ -7,17 +7,14 @@ import {
   VoteInfo,
   WeeklyConfig,
 } from "../constants/types.ts";
-import { DEFAULT_POLL_STATE } from "../constants/config.ts";
 import { MESSAGES } from "../constants/messages.ts";
 import { Vote } from "../models/vote.ts";
-import { parseRevokeCommand, parseVoteCommand } from "../utils/utils.ts";
-import * as persistence from "./persistence.ts";
-import * as scheduler from "./scheduler.ts";
 import {
-  configUpdateEvt,
-  pollStateEvt,
-  pollVoteEvt,
-} from "../events/events.ts";
+  parseRevokeCommand,
+  parseVoteCommand,
+} from "../commands/group-commands.ts";
+import * as persistence from "./persistence.ts";
+import { appEvt } from "../events/events.ts";
 
 // Bot and config references (will be set by bot service)
 let botInstance: Bot<MyContext> | null = null;
@@ -71,11 +68,16 @@ export async function setWeeklyConfig(
     shouldReschedule = true;
   }
   await persistence.setWeeklyConfig(config);
-  configUpdateEvt.post({
-    type: "weekly_config_updated",
-    config,
-    shouldReschedule,
-  });
+  appEvt.post({ type: "config_changed", config });
+  if (shouldReschedule) {
+    if (typeof updates.enabled !== "undefined") {
+      if (updates.enabled) {
+        appEvt.post({ type: "poll_enabled", config });
+      } else {
+        appEvt.post({ type: "poll_disabled", config });
+      }
+    }
+  }
 }
 
 // --- Instant Poll Config ---
@@ -153,7 +155,7 @@ export async function startPoll(
     statusMessageId: undefined,
   };
   await setPollState(newState);
-  pollStateEvt.post({ type: "poll_started", pollState: newState });
+  appEvt.post({ type: "poll_posted", pollState: newState });
 }
 
 export function* iteratePositiveVotesSync(
@@ -233,12 +235,6 @@ export async function addVote(ctx: MyContext): Promise<void> {
   );
   pollState.votes.push(vote);
   await setPollState(pollState);
-  pollVoteEvt.post({
-    type: "vote_added",
-    vote,
-    userId: user!.id,
-    userName: user!.first_name,
-  });
 }
 
 export async function addVotesBulk(
@@ -290,16 +286,7 @@ export async function addVotesBulk(
   // Add all votes at once
   pollState.votes.push(...votes);
   await setPollState(pollState);
-  // Post a single event for the batch (using the last vote for context)
-  if (votes.length > 0) {
-    const lastVote = votes[votes.length - 1];
-    pollVoteEvt.post({
-      type: "vote_added",
-      vote: lastVote,
-      userId: lastVote.requesterId,
-      userName: lastVote.requesterName,
-    });
-  }
+  appEvt.post({ type: "poll_posted", pollState: pollState });
 }
 
 export async function revokeVoteByNumber(
@@ -335,12 +322,6 @@ export async function revokeVoteByNumber(
   const idx = pollState.votes.indexOf(vote);
   if (idx !== -1) {
     pollState.votes.splice(idx, 1);
-    pollVoteEvt.post({
-      type: "vote_revoked",
-      vote,
-      userId: vote.requesterId,
-      userName: vote.requesterName,
-    });
   }
   await setPollState(pollState);
   return MESSAGES.VOTE_REVOKED_SUCCESS(voteNumber, vote.userName ?? "Анонім");
@@ -356,14 +337,7 @@ export async function revokeDirectVoteByUserId(
   }
   const idx = pollState.votes.findLastIndex((v) => v.userId === userId);
   if (idx === -1) return;
-  const vote = pollState.votes[idx];
   pollState.votes.splice(idx, 1);
-  pollVoteEvt.post({
-    type: "vote_revoked",
-    vote,
-    userId: vote.userId,
-    userName: vote.userName,
-  });
   await setPollState(pollState);
 }
 
@@ -405,9 +379,6 @@ export async function handleVoteCommand(ctx: MyContext): Promise<void> {
       MESSAGES.VOTE_ADDED(added === 1 ? "1 голос" : `${added} голосів`),
     );
   }
-  if (newVotes >= pollStateAfter.targetVotes) {
-    // await ctx.reply(MESSAGES.POLL_COMPLETION); // Removed to avoid duplicate completion messages
-  }
 }
 
 export async function handleRevokeCommand(ctx: MyContext): Promise<void> {
@@ -443,18 +414,9 @@ export async function handleVote(ctx: MyContext): Promise<void> {
       MESSAGES.VOTE_ADDED(added === 1 ? "1 голос" : `${added} голосів`),
     );
   }
-  if (newVotes >= pollStateAfter.targetVotes) {
-    // await ctx.reply(MESSAGES.POLL_COMPLETION); // Removed to avoid duplicate completion messages
-  }
 }
 
 export function resetPoll(): void {
-  const newState: PollState = {
-    ...DEFAULT_POLL_STATE,
-    votes: [],
-    telegramMessageId: 0,
-  };
-  pollStateEvt.post({ type: "poll_reset", pollState: newState });
 }
 
 export async function closePollLogic(): Promise<
@@ -462,12 +424,6 @@ export async function closePollLogic(): Promise<
 > {
   const pollState = await getPollState();
   if (pollState.isActive) {
-    const newState: PollState = {
-      ...DEFAULT_POLL_STATE,
-      votes: [],
-      telegramMessageId: 0,
-    };
-    pollStateEvt.post({ type: "poll_closed", pollState: newState });
     return { closed: true, message: MESSAGES.POLL_CLOSED_CB };
   } else {
     return { closed: false, message: MESSAGES.NO_ACTIVE_POLLS_CB };
@@ -485,4 +441,49 @@ export async function confirmPollLogic(): Promise<
     config.targetVotes,
   );
   return { success: true, message: MESSAGES.POLL_SUCCESS };
+}
+
+export async function sendPollCompletionMessage(): Promise<void> {
+  if (!botInstance || !configInstance) throw new Error("Bot not initialized");
+  await botInstance.api.sendMessage(
+    configInstance.targetGroupChatId,
+    MESSAGES.POLL_COMPLETION,
+  );
+}
+
+export async function stopPoll(): Promise<void> {
+  if (!botInstance || !configInstance) throw new Error("Bot not initialized");
+  const pollState = await getPollState();
+  if (pollState.telegramMessageId !== undefined) {
+    await botInstance.api.stopPoll(
+      configInstance.targetGroupChatId,
+      pollState.telegramMessageId,
+    );
+  }
+}
+
+export async function updateStatusMessage(): Promise<void> {
+  if (!botInstance || !configInstance) throw new Error("Bot not initialized");
+  const pollState = await getPollState();
+  const { statusMessageId } = pollState;
+  if (!statusMessageId) return;
+  const statusText = await buildStatusMessage();
+  await botInstance.api.editMessageText(
+    configInstance.targetGroupChatId,
+    statusMessageId,
+    statusText,
+    { parse_mode: "Markdown" },
+  );
+}
+
+export async function createStatusMessage(): Promise<void> {
+  if (!botInstance || !configInstance) throw new Error("Bot not initialized");
+  const statusMessage = await botInstance.api.sendMessage(
+    configInstance.targetGroupChatId,
+    await buildStatusMessage(),
+    { parse_mode: "Markdown" },
+  );
+  const pollState = await getPollState();
+  pollState.statusMessageId = statusMessage.message_id;
+  await setPollState(pollState);
 }

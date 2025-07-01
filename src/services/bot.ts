@@ -3,7 +3,7 @@ import { MyContext, withSession } from "../middleware/session.ts";
 import { onlyAdmin } from "../middleware/admin.ts";
 import { errorHandler } from "../middleware/error.ts";
 import { Config } from "../constants/types.ts";
-import { loadEnvs } from "../constants/config.ts";
+import { loadEnvs } from "../utils/env-utils.ts";
 import {
   handleReboot,
   handleReset,
@@ -13,8 +13,6 @@ import { handleGroupText } from "../commands/group-commands.ts";
 import { onlyTargetGroup } from "../middleware/group.ts";
 import { mainMenu } from "../menus/admin-menu.ts";
 import * as pollService from "./poll-service.ts";
-import * as scheduler from "./scheduler.ts";
-import * as statusMessage from "./status-message.ts";
 import { createConfigEditHandler } from "../utils/convo-handler.ts";
 
 let botInstance: Bot<MyContext> | null = null;
@@ -27,13 +25,11 @@ export function initializeBot(): { bot: Bot<MyContext>; config: Config } {
   configInstance = loadEnvs();
   botInstance = new Bot<MyContext>(configInstance.botToken);
   pollService.setBotInstance(botInstance, configInstance);
-  statusMessage.setBotInstance(botInstance, configInstance);
-  scheduler.initializeSchedulerEventListeners();
-  statusMessage.initializeEventListeners();
   botInstance.catch((e) => errorHandler(e));
   botInstance.chatType("private").use(createAdminComposer().middleware());
   botInstance.chatType("group").use(createGroupComposer().middleware());
   botInstance.use(createPollComposer().middleware());
+
   return { bot: botInstance, config: configInstance };
 }
 
@@ -57,20 +53,13 @@ function createAdminComposer() {
   const adminComposer = new Composer<MyContext>();
   adminComposer.use(onlyAdmin());
   adminComposer.use(withSession());
-
-  // Reset edit flag on any menu navigation
   adminComposer.on("callback_query:data", async (ctx, next) => {
     ctx.session.editTarget = undefined;
     ctx.session.editContext = undefined;
     await next();
   });
-
-  // Menu middleware
   adminComposer.use(mainMenu);
-
-  // Config edit handler
   adminComposer.on("message:text", createConfigEditHandler());
-
   adminComposer.command("start", handleStart);
   adminComposer.command("reset", handleReset);
   adminComposer.command("reboot", handleReboot);

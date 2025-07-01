@@ -69,7 +69,6 @@ export const createConfigEditHandler =
       }
       const value = text.trim();
       const validatedValue = validateField(target, value);
-      // Save to config
       if (context === "poll") {
         await pollService.setInstantPollConfig({ [target]: validatedValue });
       }

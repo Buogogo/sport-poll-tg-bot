@@ -40,7 +40,6 @@ class DenoKvAdapter<T> implements StorageAdapter<T> {
     await kv.delete(this.key(key));
   }
 
-  // No-op for cleanupOldSessions; Deno KV does not support TTL natively yet
   async cleanupOldSessions(): Promise<void> {}
 }
 

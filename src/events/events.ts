@@ -1,48 +1,59 @@
 import { Evt } from "evt";
-import { Vote } from "../models/vote.ts";
 import {
   InstantPollConfig,
   PollState,
   WeeklyConfig,
 } from "../constants/types.ts";
+import {
+  createStatusMessage,
+  updateStatusMessage,
+} from "../services/poll-service.ts";
 
-export interface PollVoteEvent {
-  type: "vote_added" | "vote_revoked";
-  vote: Vote;
-  userId?: number;
-  userName?: string;
-}
-
-export interface PollStateEvent {
-  type: "poll_started" | "poll_completed" | "poll_closed" | "poll_reset";
+// New event types for unified scheduling
+export interface PollPostedEvent {
+  type: "poll_posted";
   pollState: PollState;
 }
 
-export interface ConfigUpdateEvent {
-  type: "weekly_config_updated" | "instant_poll_config_updated";
+export interface ConfigChangedEvent {
+  type: "config_changed";
   config: WeeklyConfig | InstantPollConfig;
-  shouldReschedule?: boolean;
 }
 
-export interface StatusMessageEvent {
-  type: "status_message_created" | "status_message_updated";
-  messageId: number;
-  chatId: number;
+export interface PollEnabledEvent {
+  type: "poll_enabled";
+  config: WeeklyConfig;
 }
 
-export interface SchedulerEvent {
-  type: "poll_scheduled" | "poll_triggered";
-  nextPollTime?: Date;
+export interface PollDisabledEvent {
+  type: "poll_disabled";
+  config: WeeklyConfig;
 }
 
-export interface SessionEvent {
-  type: "session_reset";
-  ctx: unknown; // TODO: Use MyContext if circular import is resolved
+export interface PollScheduledEvent {
+  type: "poll_scheduled";
+  nextPollTime: Date;
 }
 
-export const pollVoteEvt = Evt.create<PollVoteEvent>();
-export const pollStateEvt = Evt.create<PollStateEvent>();
-export const configUpdateEvt = Evt.create<ConfigUpdateEvent>();
-export const statusMessageEvt = Evt.create<StatusMessageEvent>();
-export const schedulerEvt = Evt.create<SchedulerEvent>();
-export const sessionEvt = Evt.create<SessionEvent>();
+export interface PollTriggeredEvent {
+  type: "poll_triggered";
+}
+
+export type AppEvent =
+  | PollPostedEvent
+  | ConfigChangedEvent
+  | PollEnabledEvent
+  | PollDisabledEvent
+  | PollScheduledEvent
+  | PollTriggeredEvent;
+
+export const appEvt = Evt.create<AppEvent>();
+
+appEvt.attach(async (event) => {
+  if (event.type === "poll_posted") {
+    await createStatusMessage();
+    await updateStatusMessage();
+  } else if (event.type === "config_changed") {
+    await updateStatusMessage();
+  }
+});

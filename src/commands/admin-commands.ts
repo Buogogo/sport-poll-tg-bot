@@ -17,9 +17,7 @@ export async function handleStart(ctx: MyContext) {
 }
 
 export async function handleReset(ctx: MyContext) {
-  // Cleanly reset session
   resetSession(ctx);
-  // Show main menu or confirmation
   await ctx.reply(MESSAGES.ADMIN_INTERFACE_RESET, { reply_markup: mainMenu });
 }
 

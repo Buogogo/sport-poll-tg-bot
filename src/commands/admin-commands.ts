@@ -11,7 +11,7 @@ export async function handleStart(ctx: MyContext) {
   const session = getAdminSession(ctx);
   const message = await ctx.reply(MESSAGES.MAIN_MENU_TITLE, {
     reply_markup: mainMenu,
-    parse_mode: "MarkdownV2",
+    parse_mode: "HTML",
   });
   session.lastMenuMessageId = message.message_id;
 }
@@ -23,5 +23,5 @@ export async function handleReset(ctx: MyContext) {
 
 export async function handleReboot(ctx: MyContext) {
   await clearAllPersistentData();
-  await ctx.reply(MESSAGES.REBOOT_SUCCESS, { parse_mode: "MarkdownV2" });
+  await ctx.reply(MESSAGES.REBOOT_SUCCESS, { parse_mode: "HTML" });
 }

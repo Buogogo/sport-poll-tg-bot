@@ -107,11 +107,20 @@ export async function buildStatusMessage(): Promise<string> {
     votes.map((v, i) =>
       MESSAGES.STATUS_VOTE_ITEM(
         i + 1,
-        v.userName ?? MESSAGES.ANONYMOUS_NAME,
-        v.requesterName,
+        escapeHtml(v.userName ?? MESSAGES.ANONYMOUS_NAME),
+        v.requesterName ? escapeHtml(v.requesterName) : undefined,
       )
     ).join("\n") + (votes.length ? "\n" : "");
   return status;
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 export async function isCompleted(): Promise<boolean> {
@@ -501,16 +510,17 @@ export async function updateStatusMessage(): Promise<void> {
     configInstance.targetGroupChatId,
     statusMessageId,
     statusText,
-    { parse_mode: "MarkdownV2" },
+    { parse_mode: "HTML" },
   );
 }
 
 export async function createStatusMessage(): Promise<void> {
   if (!botInstance || !configInstance) throw new Error("Bot not initialized");
+  const statusText = await buildStatusMessage();
   const statusMessage = await botInstance.api.sendMessage(
     configInstance.targetGroupChatId,
-    await buildStatusMessage(),
-    { parse_mode: "MarkdownV2" },
+    statusText,
+    { parse_mode: "HTML" },
   );
   const pollState = await getPollState();
   pollState.statusMessageId = statusMessage.message_id;

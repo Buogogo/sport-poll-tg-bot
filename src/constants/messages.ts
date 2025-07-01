@@ -2,7 +2,7 @@ import { DEFAULT_WEEKLY_CONFIG } from "./config.ts";
 
 export const MESSAGES = {
   // General
-  MAIN_MENU_TITLE: "🤖 *Адміністрування SportPoll Bot*\n\nВиберіть опцію:",
+  MAIN_MENU_TITLE: "🤖 <b>Адміністрування SportPoll Bot</b>\n\nВиберіть опцію:",
   FIELD_NAMES: {
     question: "Питання",
     positiveOption: "Варіант ЗА",
@@ -80,7 +80,7 @@ export const MESSAGES = {
   INVITED: (name: string) => `запросив ${name}`,
   POLL_CLOSED_SUCCESS: "✅ Опитування закрито",
   EDIT_PROMPT: (fieldName: string, currentValue: string) =>
-    `✏️ *Редагування: ${fieldName}*\n\nПоточне значення: \`${currentValue}\`\n\nВведіть нове значення:`,
+    `✏️ <b>Редагування: ${fieldName}</b>\n\nПоточне значення: <code>${currentValue}</code>\n\nВведіть нове значення:`,
   POLL_CREATE_TEXT: (pollData: {
     question: string;
     positiveOption: string;
@@ -104,25 +104,25 @@ export const MESSAGES = {
   },
 
   // Status message components
-  STATUS_HEADER: "📊 *Статус опитування*\n\n",
-  STATUS_COMPLETED: "✅ *Опитування завершено!*\n",
-  STATUS_ACTIVE: "🗳️ *Опитування активне*\n",
+  STATUS_HEADER: "📊 <b>Статус опитування</b>\n\n",
+  STATUS_COMPLETED: "✅ <b>Опитування завершено!</b>\n",
+  STATUS_ACTIVE: "🗳️ <b>Опитування активне</b>\n",
   STATUS_TARGET: (targetVotes: number) =>
-    `🎯 Ціль: *${targetVotes.toString()}* голосів\n`,
+    `🎯 Ціль: <b>${targetVotes.toString()}</b> голосів\n`,
   STATUS_CURRENT: (currentVotes: number) =>
-    `📊 Поточний рахунок: *${currentVotes.toString()}* голосів\n`,
+    `📊 Поточний рахунок: <b>${currentVotes.toString()}</b> голосів\n`,
   STATUS_REMAINING: (remaining: number) =>
-    `⏳ Залишилось: *${remaining.toString()}* голосів\n\n💡 *Як голосувати:*\n`,
+    `⏳ Залишилось: <b>${remaining.toString()}</b> голосів\n\n💡 <b>Як голосувати:</b>\n`,
   STATUS_INSTRUCTIONS: [
     "• Використовуйте опитування вище для особистого голосу",
     "• Або використовуйте команди:",
-    "  `/+` - додати 1 голос ЗА",
-    "  `/+ 3` - додати 3 голоси ЗА",
-    "  `/+ Петро Іван` - додати голоси від імені людей",
-    "  `/- [номер]` - відкликати голос за номером зі списку\n",
+    "  <code>/+</code> - додати 1 голос ЗА",
+    "  <code>/+ 3</code> - додати 3 голоси ЗА",
+    "  <code>/+ Петро Іван</code> - додати голоси від імені людей",
+    "  <code>/- [номер]</code> - відкликати голос за номером зі списку\n",
   ].join("\n"),
-  STATUS_THANKS: "\n⚽️ *Дякуємо всім за участь!*\n\n",
-  STATUS_VOTES_LIST: "📋 *Список голосів ЗА:*\n",
+  STATUS_THANKS: "\n⚽️ <b>Дякуємо всім за участь!</b>\n\n",
+  STATUS_VOTES_LIST: "📋 <b>Список голосів ЗА:</b>\n",
   STATUS_VOTE_ITEM: (index: number, userName: string, requesterName?: string) =>
     requesterName
       ? `${index.toString()}. ${userName} (запросив ${requesterName})`

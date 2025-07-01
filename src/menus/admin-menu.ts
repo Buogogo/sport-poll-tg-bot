@@ -12,10 +12,6 @@ const closePoll = async (ctx: MyContext) => {
 const confirmPoll = async (ctx: MyContext) => {
   const result = await pollService.confirmPollLogic();
   await ctx.answerCallbackQuery(result.message);
-  if (ctx.menu) {
-    ctx.menu.nav("main");
-  }
-  ctx.menu.update();
 };
 
 const toggleWeeklyStatus = async (ctx: MyContext) => {
@@ -32,9 +28,8 @@ const daySelection = (dayIndex: number) => async (ctx: MyContext) => {
   await pollService.setWeeklyConfig({ dayOfWeek: dayIndex });
   await ctx.answerCallbackQuery(MESSAGES.DAY_SAVED);
   if (ctx.menu) {
-    ctx.menu.nav("weekly-settings");
+    await ctx.menu.nav("weekly-settings");
   }
-  ctx.menu.update();
 };
 
 export const mainMenu = new Menu<MyContext>("main")

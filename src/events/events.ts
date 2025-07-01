@@ -5,12 +5,6 @@ import {
   WeeklyConfig,
 } from "../constants/types.ts";
 
-// New event types for unified scheduling
-export interface PollPostedEvent {
-  type: "poll_posted";
-  pollState: PollState;
-}
-
 export interface ConfigChangedEvent {
   type: "config_changed";
   config: WeeklyConfig | InstantPollConfig;
@@ -35,12 +29,35 @@ export interface PollTriggeredEvent {
   type: "poll_triggered";
 }
 
+export interface VoteAddedEvent {
+  type: "vote_added";
+  pollState: PollState;
+  userId?: number;
+  userName?: string;
+  voteType: "direct" | "external";
+}
+
+export interface VoteRevokedEvent {
+  type: "vote_revoked";
+  pollState: PollState;
+  userId?: number;
+  userName?: string;
+  voteType: "direct" | "external";
+}
+
+export interface PollStartedEvent {
+  type: "poll_started";
+  pollState: PollState;
+}
+
 export type AppEvent =
-  | PollPostedEvent
   | ConfigChangedEvent
   | PollEnabledEvent
   | PollDisabledEvent
   | PollScheduledEvent
-  | PollTriggeredEvent;
+  | PollTriggeredEvent
+  | VoteAddedEvent
+  | VoteRevokedEvent
+  | PollStartedEvent;
 
 export const appEvt = Evt.create<AppEvent>();

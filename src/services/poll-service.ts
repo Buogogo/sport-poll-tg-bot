@@ -155,7 +155,7 @@ export async function startPoll(
     statusMessageId: undefined,
   };
   await setPollState(newState);
-  appEvt.post({ type: "poll_posted", pollState: newState });
+  appEvt.post({ type: "poll_started", pollState: newState });
 }
 
 export function* iteratePositiveVotesSync(
@@ -235,6 +235,13 @@ export async function addVote(ctx: MyContext): Promise<void> {
   );
   pollState.votes.push(vote);
   await setPollState(pollState);
+  appEvt.post({
+    type: "vote_added",
+    pollState,
+    userId: user!.id,
+    userName: user!.first_name || "Анонім",
+    voteType: "direct",
+  });
 }
 
 export async function addVotesBulk(
@@ -286,7 +293,13 @@ export async function addVotesBulk(
   // Add all votes at once
   pollState.votes.push(...votes);
   await setPollState(pollState);
-  appEvt.post({ type: "poll_posted", pollState: pollState });
+  appEvt.post({
+    type: "vote_added",
+    pollState,
+    userId: ctx.from?.id,
+    userName: ctx.from?.first_name,
+    voteType: "external",
+  });
 }
 
 export async function revokeVoteByNumber(
@@ -324,6 +337,13 @@ export async function revokeVoteByNumber(
     pollState.votes.splice(idx, 1);
   }
   await setPollState(pollState);
+  appEvt.post({
+    type: "vote_revoked",
+    pollState,
+    userId: vote.requesterId,
+    userName: vote.requesterName,
+    voteType: "external",
+  });
   return MESSAGES.VOTE_REVOKED_SUCCESS(voteNumber, vote.userName ?? "Анонім");
 }
 
@@ -337,8 +357,16 @@ export async function revokeDirectVoteByUserId(
   }
   const idx = pollState.votes.findLastIndex((v) => v.userId === userId);
   if (idx === -1) return;
+  const vote = pollState.votes[idx];
   pollState.votes.splice(idx, 1);
   await setPollState(pollState);
+  appEvt.post({
+    type: "vote_revoked",
+    pollState,
+    userId: vote.userId,
+    userName: vote.userName,
+    voteType: "direct",
+  });
 }
 
 export async function createWeeklyPoll(): Promise<{
@@ -414,6 +442,7 @@ export async function handleVote(ctx: MyContext): Promise<void> {
       MESSAGES.VOTE_ADDED(added === 1 ? "1 голос" : `${added} голосів`),
     );
   }
+  await updateStatusMessage();
 }
 
 export function resetPoll(): void {

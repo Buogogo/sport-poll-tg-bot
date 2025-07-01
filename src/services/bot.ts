@@ -1,5 +1,9 @@
 import { Bot, Composer } from "grammy";
-import { MyContext, withSession } from "../middleware/session.ts";
+import {
+  MyContext,
+  routeStateRouter,
+  withSession,
+} from "../middleware/session.ts";
 import { onlyAdmin } from "../middleware/admin.ts";
 import { errorHandler } from "../middleware/error.ts";
 import { Config } from "../constants/types.ts";
@@ -13,7 +17,6 @@ import { handleGroupText } from "../commands/group-commands.ts";
 import { onlyTargetGroup } from "../middleware/group.ts";
 import { mainMenu } from "../menus/admin-menu.ts";
 import * as pollService from "./poll-service.ts";
-import { createConfigEditHandler } from "../utils/convo-handler.ts";
 
 let botInstance: Bot<MyContext> | null = null;
 let configInstance: Config | null = null;
@@ -53,13 +56,8 @@ function createAdminComposer() {
   const adminComposer = new Composer<MyContext>();
   adminComposer.use(onlyAdmin());
   adminComposer.use(withSession());
-  adminComposer.on("callback_query:data", async (ctx, next) => {
-    ctx.session.editTarget = undefined;
-    ctx.session.editContext = undefined;
-    await next();
-  });
   adminComposer.use(mainMenu);
-  adminComposer.on("message:text", createConfigEditHandler());
+  adminComposer.use(routeStateRouter);
   adminComposer.command("start", handleStart);
   adminComposer.command("reset", handleReset);
   adminComposer.command("reboot", handleReboot);

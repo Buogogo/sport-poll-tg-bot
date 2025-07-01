@@ -165,7 +165,6 @@ export const MESSAGES = {
   CANCELLED: "❌ Скасовано",
   ALREADY_UPDATED: "Вже оновлено!",
   ANONYMOUS_NAME: "Анонім",
-  UNKNOWN_DAY: "???",
   DEFAULT_ERROR: "🫠 Упс! Шось не так",
 } as const;
 

@@ -52,8 +52,7 @@ export const pollCreateMenu: Menu<MyContext> = new Menu<MyContext>(
         (await pollService.getInstantPollConfig()).question,
       ),
     async (ctx: MyContext) => {
-      ctx.session.editTarget = "question";
-      ctx.session.editContext = "poll";
+      ctx.session.routeState = "edit_poll_question";
       await ctx.reply(
         MESSAGES.ENTER_FIELD_PROMPT(MESSAGES.FIELD_NAMES["question"]),
       );
@@ -65,8 +64,7 @@ export const pollCreateMenu: Menu<MyContext> = new Menu<MyContext>(
         (await pollService.getInstantPollConfig()).positiveOption,
       ),
     async (ctx: MyContext) => {
-      ctx.session.editTarget = "positiveOption";
-      ctx.session.editContext = "poll";
+      ctx.session.routeState = "edit_poll_positiveOption";
       await ctx.reply(
         MESSAGES.ENTER_FIELD_PROMPT(MESSAGES.FIELD_NAMES["positiveOption"]),
       );
@@ -78,8 +76,7 @@ export const pollCreateMenu: Menu<MyContext> = new Menu<MyContext>(
         (await pollService.getInstantPollConfig()).negativeOption,
       ),
     async (ctx: MyContext) => {
-      ctx.session.editTarget = "negativeOption";
-      ctx.session.editContext = "poll";
+      ctx.session.routeState = "edit_poll_negativeOption";
       await ctx.reply(
         MESSAGES.ENTER_FIELD_PROMPT(MESSAGES.FIELD_NAMES["negativeOption"]),
       );
@@ -91,8 +88,7 @@ export const pollCreateMenu: Menu<MyContext> = new Menu<MyContext>(
         (await pollService.getInstantPollConfig()).targetVotes,
       ),
     async (ctx: MyContext) => {
-      ctx.session.editTarget = "targetVotes";
-      ctx.session.editContext = "poll";
+      ctx.session.routeState = "edit_poll_targetVotes";
       await ctx.reply(
         MESSAGES.ENTER_FIELD_PROMPT(MESSAGES.FIELD_NAMES["targetVotes"]),
       );
@@ -103,11 +99,8 @@ export const pollCreateMenu: Menu<MyContext> = new Menu<MyContext>(
   }).row()
   .text(MESSAGES.MENU_CREATE, confirmPoll)
   .text(MESSAGES.MENU_BACK, async (ctx: MyContext) => {
-    if (ctx.session.editTarget) {
-      ctx.session.editTarget = undefined;
-      ctx.session.editContext = undefined;
-      await ctx.reply(MESSAGES.CANCELLED, { parse_mode: "MarkdownV2" });
-    }
+    ctx.session.routeState = "main_menu";
+    await ctx.reply(MESSAGES.CANCELLED, { parse_mode: "MarkdownV2" });
     ctx.menu.nav("main");
   });
 
@@ -120,8 +113,7 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
         (await pollService.getWeeklyConfig()).question,
       ),
     async (ctx: MyContext) => {
-      ctx.session.editTarget = "question";
-      ctx.session.editContext = "weekly";
+      ctx.session.routeState = "edit_weekly_question";
       await ctx.reply(
         MESSAGES.ENTER_FIELD_PROMPT(MESSAGES.FIELD_NAMES["question"]),
       );
@@ -133,8 +125,7 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
         (await pollService.getWeeklyConfig()).positiveOption,
       ),
     async (ctx: MyContext) => {
-      ctx.session.editTarget = "positiveOption";
-      ctx.session.editContext = "weekly";
+      ctx.session.routeState = "edit_weekly_positiveOption";
       await ctx.reply(
         MESSAGES.ENTER_FIELD_PROMPT(MESSAGES.FIELD_NAMES["positiveOption"]),
       );
@@ -146,8 +137,7 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
         (await pollService.getWeeklyConfig()).negativeOption,
       ),
     async (ctx: MyContext) => {
-      ctx.session.editTarget = "negativeOption";
-      ctx.session.editContext = "weekly";
+      ctx.session.routeState = "edit_weekly_negativeOption";
       await ctx.reply(
         MESSAGES.ENTER_FIELD_PROMPT(MESSAGES.FIELD_NAMES["negativeOption"]),
       );
@@ -159,8 +149,7 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
         (await pollService.getWeeklyConfig()).targetVotes,
       ),
     async (ctx: MyContext) => {
-      ctx.session.editTarget = "targetVotes";
-      ctx.session.editContext = "weekly";
+      ctx.session.routeState = "edit_weekly_targetVotes";
       await ctx.reply(
         MESSAGES.ENTER_FIELD_PROMPT(MESSAGES.FIELD_NAMES["targetVotes"]),
       );
@@ -177,8 +166,7 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
     async () =>
       MESSAGES.MENU_LABEL_TIME((await pollService.getWeeklyConfig()).startHour),
     async (ctx: MyContext) => {
-      ctx.session.editTarget = "startHour";
-      ctx.session.editContext = "weekly";
+      ctx.session.routeState = "edit_weekly_startHour";
       await ctx.reply(
         MESSAGES.ENTER_FIELD_PROMPT(MESSAGES.FIELD_NAMES["startHour"]),
       );
@@ -193,8 +181,7 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
         : MESSAGES.MENU_RANDOM_MINUTES(minutes)
     }`;
   }, async (ctx: MyContext) => {
-    ctx.session.editTarget = "randomWindowMinutes";
-    ctx.session.editContext = "weekly";
+    ctx.session.routeState = "edit_weekly_randomWindowMinutes";
     await ctx.reply(
       MESSAGES.ENTER_FIELD_PROMPT(MESSAGES.FIELD_NAMES["randomWindowMinutes"]),
     );
@@ -214,11 +201,8 @@ const weeklySettingsMenuInst: Menu<MyContext> = new Menu<MyContext>(
     ctx.menu.update();
   }).row()
   .text(MESSAGES.MENU_BACK, async (ctx: MyContext) => {
-    if (ctx.session.editTarget) {
-      ctx.session.editTarget = undefined;
-      ctx.session.editContext = undefined;
-      await ctx.reply(MESSAGES.CANCELLED, { parse_mode: "MarkdownV2" });
-    }
+    ctx.session.routeState = "weekly-settings";
+    await ctx.reply(MESSAGES.CANCELLED, { parse_mode: "MarkdownV2" });
     ctx.menu.nav("main");
   });
 

@@ -1,6 +1,17 @@
-import { Context, session, SessionFlavor, StorageAdapter } from "grammy";
+import {
+  Context,
+  MiddlewareFn,
+  session,
+  SessionFlavor,
+  StorageAdapter,
+} from "grammy";
 import { MenuFlavor } from "@grammyjs/menu";
 import { AdminSession } from "../constants/types.ts";
+import {
+  EDIT_PAGES,
+  EditPage,
+  handleEditMessage,
+} from "../utils/convo-handler.ts";
 
 export interface SessionData {
   adminSession?: AdminSession;
@@ -85,4 +96,11 @@ export const clearAllPersistentData = async (): Promise<void> => {
   for await (const entry of kv.list({ prefix: [] })) {
     await kv.delete(entry.key);
   }
+};
+
+export const routeStateRouter: MiddlewareFn<MyContext> = async (ctx, next) => {
+  if (EDIT_PAGES.includes(ctx.session.routeState as EditPage)) {
+    return await handleEditMessage(ctx, next);
+  }
+  await next();
 };

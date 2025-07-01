@@ -57,28 +57,53 @@ const validateField = (
   return validateStringField(target, value);
 };
 
-export const createConfigEditHandler =
-  (): MiddlewareFn<MyContext> => async (ctx, next) => {
-    if (ctx.session.editTarget) {
-      const target = ctx.session.editTarget;
-      const context = ctx.session.editContext;
-      const text = ctx.message?.text;
-      if (typeof text !== "string") {
-        await ctx.reply(MESSAGES.DEFAULT_ERROR);
-        return;
-      }
-      const value = text.trim();
-      const validatedValue = validateField(target, value);
-      if (context === "poll") {
-        await pollService.setInstantPollConfig({ [target]: validatedValue });
-      }
-      if (context === "weekly") {
-        await pollService.setWeeklyConfig({ [target]: validatedValue });
-      }
-      await ctx.reply(MESSAGES.FIELD_SAVED);
-      ctx.session.editTarget = undefined;
-      ctx.session.editContext = undefined;
+export const EDIT_PAGES = [
+  "edit_poll_question",
+  "edit_poll_positiveOption",
+  "edit_poll_negativeOption",
+  "edit_poll_targetVotes",
+  "edit_weekly_question",
+  "edit_weekly_positiveOption",
+  "edit_weekly_negativeOption",
+  "edit_weekly_targetVotes",
+  "edit_weekly_startHour",
+  "edit_weekly_randomWindowMinutes",
+] as const;
+
+export type EditPage = typeof EDIT_PAGES[number];
+
+export const handleEditMessage: MiddlewareFn<MyContext> = async (ctx, next) => {
+  const { routeState } = ctx.session;
+  if (routeState && routeState.startsWith("edit_")) {
+    const text = ctx.message?.text;
+    if (typeof text !== "string") {
+      await ctx.reply(MESSAGES.DEFAULT_ERROR);
       return;
     }
-    await next();
-  };
+    const value = text.trim();
+    let target: string | undefined;
+    let context: "poll" | "weekly" | undefined;
+    // Parse routeState, e.g. "edit_poll_question" => ["edit", "poll", "question"]
+    const parts = routeState.split("_");
+    if (parts.length === 3) {
+      context = parts[1] as "poll" | "weekly";
+      target = parts[2];
+    }
+    if (!target || !context) {
+      await ctx.reply(MESSAGES.DEFAULT_ERROR);
+      ctx.session.routeState = undefined;
+      return;
+    }
+    const validatedValue = validateField(target, value);
+    if (context === "poll") {
+      await pollService.setInstantPollConfig({ [target]: validatedValue });
+      ctx.session.routeState = "poll-create";
+    } else if (context === "weekly") {
+      await pollService.setWeeklyConfig({ [target]: validatedValue });
+      ctx.session.routeState = "weekly-settings";
+    }
+    await ctx.reply(MESSAGES.FIELD_SAVED);
+    return;
+  }
+  await next();
+};

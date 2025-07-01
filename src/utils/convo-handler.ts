@@ -2,60 +2,7 @@ import { MiddlewareFn } from "grammy";
 import { MyContext } from "../middleware/session.ts";
 import * as pollService from "../services/poll-service.ts";
 import { MESSAGES } from "../constants/messages.ts";
-
-const validateNumericField = (
-  target: string,
-  value: string,
-): number => {
-  const parsedValue = parseInt(value, 10);
-  switch (target) {
-    case "targetVotes":
-      if (isNaN(parsedValue) || parsedValue < 1 || parsedValue > 9) {
-        throw new Error(MESSAGES.INVALID_TARGET_VOTES);
-      }
-      break;
-    case "startHour":
-      if (isNaN(parsedValue) || parsedValue < 0 || parsedValue > 23) {
-        throw new Error(MESSAGES.INVALID_START_HOUR);
-      }
-      break;
-    case "randomWindowMinutes":
-      if (isNaN(parsedValue) || parsedValue < 0 || parsedValue > 59) {
-        throw new Error(MESSAGES.INVALID_RANDOM_WINDOW);
-      }
-      break;
-    default:
-      throw new Error(MESSAGES.UNKNOWN_NUMERIC_FIELD(target));
-  }
-  return parsedValue;
-};
-
-const validateStringField = (
-  target: string,
-  value: string,
-): string => {
-  if (target === "question" && (value.length < 3 || value.length > 300)) {
-    throw new Error(MESSAGES.INVALID_QUESTION_LENGTH);
-  }
-  if (
-    (target === "positiveOption" || target === "negativeOption") &&
-    (value.length < 1 || value.length > 100)
-  ) {
-    throw new Error(MESSAGES.INVALID_OPTION_LENGTH);
-  }
-  return value;
-};
-
-const validateField = (
-  target: string,
-  value: string,
-): string | number => {
-  const numericFields = ["targetVotes", "startHour", "randomWindowMinutes"];
-  if (numericFields.includes(target)) {
-    return validateNumericField(target, value);
-  }
-  return validateStringField(target, value);
-};
+import { validateField } from "./validation.ts";
 
 export const EDIT_PAGES = [
   "edit_poll_question",
@@ -72,38 +19,94 @@ export const EDIT_PAGES = [
 
 export type EditPage = typeof EDIT_PAGES[number];
 
-export const handleEditMessage: MiddlewareFn<MyContext> = async (ctx, next) => {
+const EDIT_CONFIG = {
+  edit_poll_question: {
+    field: "question",
+    config: "instant",
+    route: "poll-create",
+  },
+  edit_poll_positiveOption: {
+    field: "positiveOption",
+    config: "instant",
+    route: "poll-create",
+  },
+  edit_poll_negativeOption: {
+    field: "negativeOption",
+    config: "instant",
+    route: "poll-create",
+  },
+  edit_poll_targetVotes: {
+    field: "targetVotes",
+    config: "instant",
+    route: "poll-create",
+  },
+  edit_weekly_question: {
+    field: "question",
+    config: "weekly",
+    route: "weekly-settings",
+  },
+  edit_weekly_positiveOption: {
+    field: "positiveOption",
+    config: "weekly",
+    route: "weekly-settings",
+  },
+  edit_weekly_negativeOption: {
+    field: "negativeOption",
+    config: "weekly",
+    route: "weekly-settings",
+  },
+  edit_weekly_targetVotes: {
+    field: "targetVotes",
+    config: "weekly",
+    route: "weekly-settings",
+  },
+  edit_weekly_startHour: {
+    field: "startHour",
+    config: "weekly",
+    route: "weekly-settings",
+  },
+  edit_weekly_randomWindowMinutes: {
+    field: "randomWindowMinutes",
+    config: "weekly",
+    route: "weekly-settings",
+  },
+} as const;
+
+export const handleEditMessage: MiddlewareFn<MyContext> = async (
+  ctx,
+  _next,
+) => {
   const { routeState } = ctx.session;
-  if (routeState && routeState.startsWith("edit_")) {
-    const text = ctx.message?.text;
-    if (typeof text !== "string") {
-      await ctx.reply(MESSAGES.DEFAULT_ERROR);
-      return;
-    }
-    const value = text.trim();
-    let target: string | undefined;
-    let context: "poll" | "weekly" | undefined;
-    // Parse routeState, e.g. "edit_poll_question" => ["edit", "poll", "question"]
-    const parts = routeState.split("_");
-    if (parts.length === 3) {
-      context = parts[1] as "poll" | "weekly";
-      target = parts[2];
-    }
-    if (!target || !context) {
-      await ctx.reply(MESSAGES.DEFAULT_ERROR);
-      ctx.session.routeState = undefined;
-      return;
-    }
-    const validatedValue = validateField(target, value);
-    if (context === "poll") {
-      await pollService.setInstantPollConfig({ [target]: validatedValue });
-      ctx.session.routeState = "poll-create";
-    } else if (context === "weekly") {
-      await pollService.setWeeklyConfig({ [target]: validatedValue });
-      ctx.session.routeState = "weekly-settings";
-    }
-    await ctx.reply(MESSAGES.FIELD_SAVED);
+  const editPage = routeState as EditPage;
+  const text = ctx.message?.text;
+  if (typeof text !== "string") {
+    await ctx.reply(MESSAGES.DEFAULT_ERROR);
     return;
   }
-  await next();
+
+  const config = EDIT_CONFIG[editPage];
+  if (!config) {
+    await ctx.reply(MESSAGES.DEFAULT_ERROR);
+    ctx.session.routeState = undefined;
+    return;
+  }
+
+  try {
+    const validatedValue = validateField(config.field, text.trim());
+    const updateData = { [config.field]: validatedValue };
+
+    if (config.config === "instant") {
+      await pollService.setInstantPollConfig(updateData);
+    } else {
+      await pollService.setWeeklyConfig(updateData);
+    }
+
+    ctx.session.routeState = config.route;
+    await ctx.reply(MESSAGES.FIELD_SAVED);
+  } catch (error) {
+    const message = error instanceof Error
+      ? error.message
+      : MESSAGES.DEFAULT_ERROR;
+    await ctx.reply(message);
+  }
 };

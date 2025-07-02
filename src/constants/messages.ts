@@ -2,7 +2,7 @@ import { DEFAULT_WEEKLY_CONFIG } from "./config.ts";
 
 export const MESSAGES = {
   // General
-  MAIN_MENU_TITLE: "🤖 <b>Адміністрування SportPoll Bot</b>\n\nВиберіть опцію:",
+  MAIN_MENU_TITLE: "🤖 <b>Налаштування</b>\n\nВиберіть опцію:",
   FIELD_NAMES: {
     question: "Питання",
     positiveOption: "Варіант ЗА",

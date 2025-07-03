@@ -32,7 +32,7 @@ function migratePollState(loadedState: Record<string, unknown>) {
     loadedState.targetReached = !loadedState.isActive;
     delete loadedState.isActive;
   }
-  
+
   if (Array.isArray(loadedState.votes)) {
     if (typeof loadedState.telegramMessageId !== "number") {
       return { ...loadedState, telegramMessageId: 0 };

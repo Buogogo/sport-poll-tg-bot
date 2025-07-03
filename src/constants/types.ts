@@ -23,7 +23,7 @@ export type VoteInfo = {
 };
 
 export interface PollState {
-  isActive: boolean;
+  targetReached: boolean;
   question: string;
   positiveOption: string;
   negativeOption: string;

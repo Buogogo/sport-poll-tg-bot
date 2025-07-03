@@ -88,7 +88,7 @@ export async function getPositiveVotes(): Promise<number> {
 
 export async function buildStatusMessage(): Promise<string> {
   const pollState = await getPollState();
-  if (!pollState.isActive && pollState.targetVotes === 0) return "";
+  if (pollState.targetVotes === 0) return "";
   const currentVotes = pollState.votes.filter((v) => v.optionId === 0).length;
   const completed = await isCompleted();
   const remaining = pollState.targetVotes - currentVotes;
@@ -136,7 +136,7 @@ export async function startPoll(
   targetVotes: number,
 ): Promise<void> {
   const pollState = await getPollState();
-  if (pollState.isActive) {
+  if (!pollState.targetReached) {
     appEvt.post({ type: "poll_replaced", pollState });
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
@@ -149,7 +149,7 @@ export async function startPoll(
     { is_anonymous: false, type: "regular" },
   );
   const newState: PollState = {
-    isActive: true,
+    targetReached: false,
     question,
     positiveOption,
     negativeOption,
@@ -216,7 +216,7 @@ export async function findLastVoteByRequesterId(
 
 export async function addVote(ctx: MyContext): Promise<void> {
   const pollState = await getPollState();
-  if (!pollState.isActive) {
+  if (pollState.targetReached) {
     throw new UserFacingError(ctx, MESSAGES.NO_ACTIVE_POLL);
   }
   const { user, option_ids } = ctx.update.poll_answer!;
@@ -258,7 +258,7 @@ export async function addVotesBulk(
   const userId = ctx.from?.id!;
   const isAdmin = configInstance.adminUserIds.includes(userId);
 
-  if (!canUserAddVotes(userId, isAdmin, pollState.isActive)) {
+  if (!canUserAddVotes(userId, isAdmin, pollState.targetReached)) {
     throw new UserFacingError(ctx, MESSAGES.NO_ACTIVE_POLL);
   }
 
@@ -297,7 +297,7 @@ export async function addVotesBulk(
     ];
   }
 
-  if (pollState.isActive && votes.length > remaining) {
+  if (!pollState.targetReached && votes.length > remaining) {
     return MESSAGES.TOO_MANY_VOTES(votes.length, remaining);
   }
 
@@ -315,9 +315,9 @@ export async function addVotesBulk(
 function canUserAddVotes(
   _userId: number,
   isAdmin: boolean,
-  pollActive: boolean,
+  pollTargetReached: boolean,
 ): boolean {
-  if (pollActive) return true;
+  if (!pollTargetReached) return true;
   if (isAdmin) return true;
   return false;
 }
@@ -326,7 +326,7 @@ function canUserRevokeVote(
   vote: Vote,
   userId: number,
   isAdmin: boolean,
-  pollActive: boolean,
+  pollTargetReached: boolean,
 ): boolean {
   const isDirectVote = !!vote.userId;
   const isVoteOwner = vote.requesterId === userId;
@@ -334,7 +334,7 @@ function canUserRevokeVote(
   if (isAdmin) return true;
   if (isDirectVote) return false;
   if (!isVoteOwner) return false;
-  if (!pollActive) return false;
+  if (pollTargetReached) return false;
 
   return true;
 }
@@ -351,17 +351,17 @@ export async function revokeVoteByNumber(
     throw new UserFacingError(ctx, MESSAGES.POLL_VOTE_NUMBER_TOO_LOW);
   }
 
-  const votes = pollState.votes.filter((v) => v.optionId === 0);
-  const vote = votes[voteNumber - 1];
-  if (!vote) {
+  const voteInfo = await findVoteByNumber(voteNumber);
+  if (!voteInfo) {
     throw new UserFacingError(ctx, MESSAGES.VOTE_NOT_FOUND(voteNumber));
   }
+  const vote = voteInfo.vote;
 
-  if (!canUserRevokeVote(vote, userId, isAdmin, pollState.isActive)) {
+  if (!canUserRevokeVote(vote, userId, isAdmin, pollState.targetReached)) {
     if (vote.userId) {
       throw new UserFacingError(ctx, MESSAGES.DIRECT_VOTE_REVOKE_ERROR);
     }
-    if (!pollState.isActive && !isAdmin) {
+    if (pollState.targetReached && !isAdmin) {
       throw new UserFacingError(ctx, MESSAGES.NO_ACTIVE_POLL);
     }
     throw new UserFacingError(ctx, MESSAGES.PERMISSION_REVOKE_ERROR);
@@ -390,7 +390,7 @@ export async function revokeDirectVoteByUserId(
   ctx: MyContext,
 ): Promise<void> {
   const pollState = await getPollState();
-  if (!pollState.isActive) {
+  if (pollState.targetReached) {
     throw new UserFacingError(ctx, MESSAGES.NO_ACTIVE_POLL);
   }
   const idx = pollState.votes.findLastIndex((v) => v.userId === userId);
@@ -424,7 +424,7 @@ export async function createWeeklyPoll(): Promise<{
 
 export async function isPollActive(): Promise<boolean> {
   const pollState = await getPollState();
-  return pollState.isActive;
+  return !pollState.targetReached;
 }
 
 export async function handleVoteCommand(ctx: MyContext): Promise<void> {
@@ -485,8 +485,8 @@ export async function handleVote(ctx: MyContext): Promise<void> {
 
 export async function resetPoll(): Promise<void> {
   const pollState = await getPollState();
-  if (pollState.isActive) {
-    pollState.isActive = false;
+  if (!pollState.targetReached) {
+    pollState.targetReached = true;
     await setPollState(pollState);
   }
 }
@@ -494,14 +494,16 @@ export async function resetPoll(): Promise<void> {
 export async function deactivatePoll(): Promise<void> {
   await stopPoll();
   await sendPollCompletionMessage();
-  await setPollState({ isActive: false } as PollState);
+  const pollState = await getPollState();
+  pollState.targetReached = true;
+  await setPollState(pollState);
 }
 
 export async function closePollLogic(): Promise<
   { closed: boolean; message: string }
 > {
   const pollState = await getPollState();
-  if (pollState.isActive) {
+  if (!pollState.targetReached) {
     appEvt.post({ type: "poll_closed_manually", pollState });
     return { closed: true, message: MESSAGES.POLL_CLOSED_CB };
   } else {

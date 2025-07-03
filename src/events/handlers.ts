@@ -2,7 +2,6 @@ import { appEvt } from "./events.ts";
 import {
   createStatusMessage,
   deactivatePoll,
-  getPollState,
   isCompleted,
   updateStatusMessage,
 } from "../services/poll-service.ts";
@@ -25,8 +24,7 @@ appEvt.attach(async (event) => {
     }
     case "vote_added": {
       await updateStatusMessage();
-      const pollState = await getPollState();
-      if (!pollState.targetReached && await isCompleted()) {
+      if (await isCompleted()) {
         appEvt.post({ type: "poll_completed", pollState: event.pollState });
       }
       break;

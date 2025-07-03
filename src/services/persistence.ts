@@ -27,12 +27,6 @@ async function kvSet<T>(key: Deno.KvKey, value: T): Promise<void> {
 }
 
 function migratePollState(loadedState: Record<string, unknown>) {
-  // Handle legacy isActive to targetReached migration
-  if (typeof loadedState.isActive === "boolean") {
-    loadedState.targetReached = !loadedState.isActive;
-    delete loadedState.isActive;
-  }
-
   if (Array.isArray(loadedState.votes)) {
     if (typeof loadedState.telegramMessageId !== "number") {
       return { ...loadedState, telegramMessageId: 0 };

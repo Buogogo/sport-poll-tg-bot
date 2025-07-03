@@ -8,7 +8,7 @@ export const DEFAULT_POLL_STATE: Omit<
   PollState,
   "directVotes" | "externalVotes"
 > = {
-  targetReached: false,
+  isActive: false,
   question: "",
   positiveOption: "",
   negativeOption: "",

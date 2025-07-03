@@ -41,16 +41,6 @@ export interface PollStartedEvent {
   pollState: PollState;
 }
 
-export interface PollClosedManuallyEvent {
-  type: "poll_closed_manually";
-  pollState: PollState;
-}
-
-export interface PollReplacedEvent {
-  type: "poll_replaced";
-  pollState: PollState;
-}
-
 export type AppEvent =
   | WeeklyScheduleConfigChangedEvent
   | PollScheduledEvent
@@ -58,8 +48,6 @@ export type AppEvent =
   | VoteAddedEvent
   | VoteRevokedEvent
   | PollStartedEvent
-  | PollCompletedEvent
-  | PollClosedManuallyEvent
-  | PollReplacedEvent;
+  | PollCompletedEvent;
 
 export const appEvt = Evt.create<AppEvent>();

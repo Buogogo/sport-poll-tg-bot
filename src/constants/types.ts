@@ -74,9 +74,7 @@ export type PollEvent =
   | "vote_added"
   | "vote_revoked"
   | "poll_completed"
-  | "poll_started"
-  | "poll_closed_manually"
-  | "poll_replaced";
+  | "poll_started";
 
 // Custom error types for specific error handling
 export class UserFacingError extends Error {

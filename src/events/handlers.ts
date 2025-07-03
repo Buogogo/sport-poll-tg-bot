@@ -1,12 +1,15 @@
 import { appEvt } from "./events.ts";
 import {
   createStatusMessage,
-  deactivatePoll,
   isCompleted,
+  sendPollCompletionMessage,
+  setPollState,
+  stopPoll,
   updateStatusMessage,
 } from "../services/poll-service.ts";
 import { logNextPollTime, scheduleNextPoll } from "../services/scheduler.ts";
 import { logger } from "../utils/logger.ts";
+import { PollState } from "../constants/types.ts";
 
 appEvt.attach(async (event) => {
   switch (event.type) {
@@ -34,16 +37,10 @@ appEvt.attach(async (event) => {
       break;
     }
     case "poll_completed": {
-      await deactivatePoll();
+      await stopPoll();
+      await sendPollCompletionMessage();
+      await setPollState({ isActive: false } as PollState);
       await scheduleNextPoll({ forNextWeek: true });
-      break;
-    }
-    case "poll_closed_manually": {
-      await deactivatePoll();
-      break;
-    }
-    case "poll_replaced": {
-      await deactivatePoll();
       break;
     }
     case "weekly_schedule_config_changed": {

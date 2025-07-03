@@ -136,10 +136,7 @@ export async function startPoll(
   targetVotes: number,
 ): Promise<void> {
   const pollState = await getPollState();
-  if (pollState.isActive) {
-    appEvt.post({ type: "poll_replaced", pollState });
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
+  if (pollState.isActive) await resetPoll();
   if (!botInstance || !configInstance) throw new Error("Bot not initialized");
 
   const poll = await botInstance.api.sendPoll(
@@ -254,14 +251,9 @@ export async function addVotesBulk(
   count?: number,
 ): Promise<string | void> {
   const pollState = await getPollState();
-  if (!configInstance) throw new Error("Config not initialized");
-  const userId = ctx.from?.id!;
-  const isAdmin = configInstance.adminUserIds.includes(userId);
-
-  if (!canUserAddVotes(userId, isAdmin, pollState.isActive)) {
+  if (!pollState.isActive) {
     throw new UserFacingError(ctx, MESSAGES.NO_ACTIVE_POLL);
   }
-
   const currentVotes = pollState.votes.filter((v) => v.optionId === 0).length;
   const remaining = pollState.targetVotes - currentVotes;
   let votes: Array<Vote> = [];
@@ -296,11 +288,10 @@ export async function addVotesBulk(
       ),
     ];
   }
-
-  if (pollState.isActive && votes.length > remaining) {
+  if (votes.length > remaining) {
     return MESSAGES.TOO_MANY_VOTES(votes.length, remaining);
   }
-
+  // Add all votes at once
   pollState.votes.push(...votes);
   await setPollState(pollState);
   appEvt.post({
@@ -312,33 +303,6 @@ export async function addVotesBulk(
   });
 }
 
-function canUserAddVotes(
-  _userId: number,
-  isAdmin: boolean,
-  pollActive: boolean,
-): boolean {
-  if (pollActive) return true;
-  if (isAdmin) return true;
-  return false;
-}
-
-function canUserRevokeVote(
-  vote: Vote,
-  userId: number,
-  isAdmin: boolean,
-  pollActive: boolean,
-): boolean {
-  const isDirectVote = !!vote.userId;
-  const isVoteOwner = vote.requesterId === userId;
-
-  if (isAdmin) return true;
-  if (isDirectVote) return false;
-  if (!isVoteOwner) return false;
-  if (!pollActive) return false;
-
-  return true;
-}
-
 export async function revokeVoteByNumber(
   voteNumber: number,
   userId: number,
@@ -346,27 +310,29 @@ export async function revokeVoteByNumber(
   ctx: MyContext,
 ): Promise<string> {
   const pollState = await getPollState();
-
+  if (!pollState.isActive) {
+    throw new UserFacingError(ctx, MESSAGES.NO_ACTIVE_POLL);
+  }
   if (voteNumber < 1) {
     throw new UserFacingError(ctx, MESSAGES.POLL_VOTE_NUMBER_TOO_LOW);
   }
-
   const votes = pollState.votes.filter((v) => v.optionId === 0);
   const vote = votes[voteNumber - 1];
   if (!vote) {
     throw new UserFacingError(ctx, MESSAGES.VOTE_NOT_FOUND(voteNumber));
   }
-
-  if (!canUserRevokeVote(vote, userId, isAdmin, pollState.isActive)) {
-    if (vote.userId) {
-      throw new UserFacingError(ctx, MESSAGES.DIRECT_VOTE_REVOKE_ERROR);
-    }
-    if (!pollState.isActive && !isAdmin) {
-      throw new UserFacingError(ctx, MESSAGES.NO_ACTIVE_POLL);
-    }
-    throw new UserFacingError(ctx, MESSAGES.PERMISSION_REVOKE_ERROR);
+  if (vote.userId) {
+    throw new UserFacingError(
+      ctx,
+      MESSAGES.DIRECT_VOTE_REVOKE_ERROR,
+    );
   }
-
+  if (vote.requesterId !== userId && !isAdmin) {
+    throw new UserFacingError(
+      ctx,
+      MESSAGES.PERMISSION_REVOKE_ERROR,
+    );
+  }
   const idx = pollState.votes.indexOf(vote);
   if (idx !== -1) {
     pollState.votes.splice(idx, 1);
@@ -491,18 +457,11 @@ export async function resetPoll(): Promise<void> {
   }
 }
 
-export async function deactivatePoll(): Promise<void> {
-  await stopPoll();
-  await sendPollCompletionMessage();
-  await setPollState({ isActive: false } as PollState);
-}
-
 export async function closePollLogic(): Promise<
   { closed: boolean; message: string }
 > {
   const pollState = await getPollState();
   if (pollState.isActive) {
-    appEvt.post({ type: "poll_closed_manually", pollState });
     return { closed: true, message: MESSAGES.POLL_CLOSED_CB };
   } else {
     return { closed: false, message: MESSAGES.NO_ACTIVE_POLLS_CB };

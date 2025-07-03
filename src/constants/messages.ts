@@ -122,7 +122,7 @@ export const MESSAGES = {
     "  <code>/- 5</code> - відкликати 5-ий голос за номером зі списку\n",
   ].join("\n"),
   STATUS_THANKS: "\n⚽️ <b>Дякуємо всім за участь!</b>\n\n",
-  STATUS_VOTES_LIST: "\n\n📋 <b>Список голосів ЗА:</b>\n",
+  STATUS_VOTES_LIST: "\n📋 <b>Список голосів ЗА:</b>\n",
   STATUS_VOTE_ITEM: (index: number, userName: string, requesterName?: string) =>
     requesterName
       ? `${index.toString()}. ${userName} (запросив ${requesterName})`

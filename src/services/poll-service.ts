@@ -239,9 +239,10 @@ export async function addVote(ctx: MyContext): Promise<void> {
   );
   pollState.votes.push(vote);
   await setPollState(pollState);
+  const updatedPollState = await getPollState();
   appEvt.post({
     type: "vote_added",
-    pollState,
+    pollState: updatedPollState,
     userId: user!.id,
     userName: user!.first_name || MESSAGES.ANONYMOUS_NAME,
     voteType: "direct",
@@ -303,9 +304,10 @@ export async function addVotesBulk(
 
   pollState.votes.push(...votes);
   await setPollState(pollState);
+  const updatedPollState = await getPollState();
   appEvt.post({
     type: "vote_added",
-    pollState,
+    pollState: updatedPollState,
     userId: ctx.from?.id,
     userName: ctx.from?.first_name,
     voteType: "external",
@@ -372,9 +374,10 @@ export async function revokeVoteByNumber(
     pollState.votes.splice(idx, 1);
   }
   await setPollState(pollState);
+  const updatedPollState = await getPollState();
   appEvt.post({
     type: "vote_revoked",
-    pollState,
+    pollState: updatedPollState,
     userId: vote.requesterId,
     userName: vote.requesterName,
     voteType: "external",
@@ -398,9 +401,10 @@ export async function revokeDirectVoteByUserId(
   const vote = pollState.votes[idx];
   pollState.votes.splice(idx, 1);
   await setPollState(pollState);
+  const updatedPollState = await getPollState();
   appEvt.post({
     type: "vote_revoked",
-    pollState,
+    pollState: updatedPollState,
     userId: vote.userId,
     userName: vote.userName,
     voteType: "direct",
@@ -445,6 +449,7 @@ export async function handleVoteCommand(ctx: MyContext): Promise<void> {
       MESSAGES.VOTE_ADDED(added === 1 ? "1 голос" : `${added} голосів`),
     );
   }
+  await updateStatusMessage();
 }
 
 export async function handleRevokeCommand(ctx: MyContext): Promise<void> {
@@ -459,6 +464,7 @@ export async function handleRevokeCommand(ctx: MyContext): Promise<void> {
     ctx,
   );
   await ctx.reply(result);
+  await updateStatusMessage();
 }
 
 export async function handleVote(ctx: MyContext): Promise<void> {

@@ -1,15 +1,21 @@
 import * as pollService from "../services/poll-service.ts";
 import { MESSAGES } from "../constants/messages.ts";
 import { validateField } from "../utils/validation.ts";
+import { getConfig } from "../services/bot.ts";
 import type { MyContext } from "../middleware/session.ts";
 
 export async function handleGroupText(ctx: MyContext) {
   const text = ctx.message?.text || "";
-  if (!pollService.isPollActive()) {
-    await ctx.reply(MESSAGES.NO_ACTIVE_POLL);
-    return;
-  }
+  const isActive = await pollService.isPollActive();
+  const { adminUserIds } = getConfig();
+  const userId = ctx.from?.id;
+  const isAdmin = userId ? adminUserIds.includes(userId) : false;
+
   if (/^\/\+/.test(text)) {
+    if (!isActive && !isAdmin) {
+      await ctx.reply(MESSAGES.NO_ACTIVE_POLL);
+      return;
+    }
     await pollService.handleVoteCommand(ctx);
   } else if (/^\/-/.test(text)) {
     await pollService.handleRevokeCommand(ctx);

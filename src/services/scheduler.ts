@@ -41,9 +41,6 @@ export function logNextPollTime(time: Date) {
 
 export async function createOrReplaceWeeklyPoll(): Promise<void> {
   logger.info("Creating or replacing weekly poll...");
-  if (await pollService.isPollActive()) {
-    pollService.resetPoll();
-  }
   const { question, positiveOption, negativeOption, targetVotes } =
     await pollService.createWeeklyPoll();
   await pollService.startPoll(

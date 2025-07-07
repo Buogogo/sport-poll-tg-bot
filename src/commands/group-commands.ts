@@ -38,7 +38,7 @@ export const parseVoteCommand = (
     return { count };
   }
 
-  const names = args.split(/[,\s]+/).map((name) => name.trim()).filter((name) =>
+  const names = args.split(",").map((name) => name.trim()).filter((name) =>
     name.length > 0
   );
   if (names.length === 0) throw new ValidationError(MESSAGES.EMPTY_NAMES);

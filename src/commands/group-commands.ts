@@ -26,9 +26,6 @@ class ValidationError extends Error {
 export const parseVoteCommand = (
   text: string,
 ): { names?: string[]; count?: number } => {
-  if (!text.startsWith("/+")) {
-    throw new ValidationError(MESSAGES.INVALID_COMMAND_PLUS);
-  }
   const args = text.substring(2).trim();
   if (!args) return { count: 1 };
 
@@ -54,9 +51,6 @@ export const parseVoteCommand = (
 };
 
 export const parseRevokeCommand = (text: string): number => {
-  if (!text.startsWith("/-")) {
-    throw new ValidationError(MESSAGES.INVALID_COMMAND_MINUS);
-  }
   const args = text.substring(2).trim();
   if (!args) throw new ValidationError(MESSAGES.VOTE_NUMBER_NOT_PROVIDED);
 

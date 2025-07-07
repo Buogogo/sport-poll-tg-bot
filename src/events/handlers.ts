@@ -39,7 +39,7 @@ appEvt.attach(async (event) => {
     case "poll_completed": {
       await stopPoll();
       await sendPollCompletionMessage();
-      await setPollState({ isActive: false } as PollState);
+      await setPollState({ isTargetReached: true } as PollState);
       await scheduleNextPoll({ forNextWeek: true });
       break;
     }

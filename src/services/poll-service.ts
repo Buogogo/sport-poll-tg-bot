@@ -15,6 +15,7 @@ import {
 } from "../commands/group-commands.ts";
 import * as persistence from "./persistence.ts";
 import { appEvt } from "../events/events.ts";
+import { isAdmin } from "../utils/admin-utils.ts";
 
 // Bot and config references (will be set by bot service)
 let botInstance: Bot<MyContext> | null = null;
@@ -88,7 +89,7 @@ export async function getPositiveVotes(): Promise<number> {
 
 export async function buildStatusMessage(): Promise<string> {
   const pollState = await getPollState();
-  if (!pollState.isActive && pollState.targetVotes === 0) return "";
+  if (pollState.isTargetReached && pollState.targetVotes === 0) return "";
   const currentVotes = pollState.votes.filter((v) => v.optionId === 0).length;
   const completed = await isCompleted();
   const remaining = pollState.targetVotes - currentVotes;
@@ -136,7 +137,7 @@ export async function startPoll(
   targetVotes: number,
 ): Promise<void> {
   const pollState = await getPollState();
-  if (pollState.isActive) await resetPoll();
+  if (!pollState.isTargetReached) await resetPoll();
   if (!botInstance || !configInstance) throw new Error("Bot not initialized");
 
   const poll = await botInstance.api.sendPoll(
@@ -146,7 +147,7 @@ export async function startPoll(
     { is_anonymous: false, type: "regular" },
   );
   const newState: PollState = {
-    isActive: true,
+    isTargetReached: false,
     question,
     positiveOption,
     negativeOption,
@@ -213,10 +214,10 @@ export async function findLastVoteByRequesterId(
 
 export async function addVote(ctx: MyContext): Promise<void> {
   const pollState = await getPollState();
-  if (!pollState.isActive) {
+  const { user, option_ids } = ctx.update.poll_answer!;
+  if (pollState.isTargetReached && !isAdmin(user!.id)) {
     throw new UserFacingError(ctx, MESSAGES.NO_ACTIVE_POLL);
   }
-  const { user, option_ids } = ctx.update.poll_answer!;
   const optionId = option_ids[0];
   if (optionId === 0) {
     const already = pollState.votes.some(
@@ -251,7 +252,7 @@ export async function addVotesBulk(
   count?: number,
 ): Promise<string | void> {
   const pollState = await getPollState();
-  if (!pollState.isActive) {
+  if (pollState.isTargetReached && !isAdmin(ctx.from!.id)) {
     throw new UserFacingError(ctx, MESSAGES.NO_ACTIVE_POLL);
   }
   const currentVotes = pollState.votes.filter((v) => v.optionId === 0).length;
@@ -310,7 +311,7 @@ export async function revokeVoteByNumber(
   ctx: MyContext,
 ): Promise<string> {
   const pollState = await getPollState();
-  if (!pollState.isActive) {
+  if (pollState.isTargetReached && !isAdmin) {
     throw new UserFacingError(ctx, MESSAGES.NO_ACTIVE_POLL);
   }
   if (voteNumber < 1) {
@@ -321,7 +322,7 @@ export async function revokeVoteByNumber(
   if (!vote) {
     throw new UserFacingError(ctx, MESSAGES.VOTE_NOT_FOUND(voteNumber));
   }
-  if (vote.userId) {
+  if (vote.userId && !isAdmin) {
     throw new UserFacingError(
       ctx,
       MESSAGES.DIRECT_VOTE_REVOKE_ERROR,
@@ -356,7 +357,7 @@ export async function revokeDirectVoteByUserId(
   ctx: MyContext,
 ): Promise<void> {
   const pollState = await getPollState();
-  if (!pollState.isActive) {
+  if (pollState.isTargetReached) {
     throw new UserFacingError(ctx, MESSAGES.NO_ACTIVE_POLL);
   }
   const idx = pollState.votes.findLastIndex((v) => v.userId === userId);
@@ -390,7 +391,7 @@ export async function createWeeklyPoll(): Promise<{
 
 export async function isPollActive(): Promise<boolean> {
   const pollState = await getPollState();
-  return pollState.isActive;
+  return !pollState.isTargetReached;
 }
 
 export async function handleVoteCommand(ctx: MyContext): Promise<void> {
@@ -451,8 +452,8 @@ export async function handleVote(ctx: MyContext): Promise<void> {
 
 export async function resetPoll(): Promise<void> {
   const pollState = await getPollState();
-  if (pollState.isActive) {
-    pollState.isActive = false;
+  if (!pollState.isTargetReached) {
+    pollState.isTargetReached = true;
     await setPollState(pollState);
   }
 }
@@ -461,7 +462,7 @@ export async function closePollLogic(): Promise<
   { closed: boolean; message: string }
 > {
   const pollState = await getPollState();
-  if (pollState.isActive) {
+  if (!pollState.isTargetReached) {
     return { closed: true, message: MESSAGES.POLL_CLOSED_CB };
   } else {
     return { closed: false, message: MESSAGES.NO_ACTIVE_POLLS_CB };
@@ -501,13 +502,12 @@ export async function stopPoll(): Promise<void> {
 }
 
 export async function updateStatusMessage(): Promise<void> {
-  if (!botInstance || !configInstance) throw new Error("Bot not initialized");
   const pollState = await getPollState();
   const { statusMessageId } = pollState;
   if (!statusMessageId) return;
   const statusText = await buildStatusMessage();
-  await botInstance.api.editMessageText(
-    configInstance.targetGroupChatId,
+  await botInstance!.api.editMessageText(
+    configInstance!.targetGroupChatId,
     statusMessageId,
     statusText,
     { parse_mode: "HTML" },

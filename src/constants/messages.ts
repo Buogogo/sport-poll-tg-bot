@@ -39,7 +39,7 @@ export const MESSAGES = {
   // Validation & errors
   INVALID_COMMAND_PLUS: "❌ Команда повинна починатися з /+",
   INVALID_COMMAND_MINUS: "❌ Команда повинна починатися з /-",
-  INVALID_VOTE_COUNT: "❌ Кількість голосів повинна бути від 1 до 20",
+  INVALID_VOTE_COUNT: "❌ Кількість голосів повинна бути від 1 до 9",
   INVALID_VOTE_NUMBER: "❌ Номер голосу повинен бути додатним",
   INVALID_VOTE_NUMBER_FORMAT: "❌ Невірний формат номера голосу",
   VOTE_NUMBER_NOT_PROVIDED: "❌ Номер голосу не вказано",
@@ -48,7 +48,7 @@ export const MESSAGES = {
   NAME_TOO_LONG: "❌ Ім'я занадто довге (максимум 50 символів)",
   INVALID_NAME_CHARS: "❌ Недопустимі символи в імені",
   POLL_VOTE_NUMBER_TOO_LOW: "❌ Номер голосу повинен бути більше 0",
-  INVALID_TARGET_VOTES: "❌ Кількість голосів повинна бути від 1 до 9",
+  INVALID_TARGET_VOTES: "❌ Кількість голосів повинна бути від 1 до 30",
   INVALID_START_HOUR: "❌ Година повинна бути від 0 до 23",
   INVALID_RANDOM_WINDOW: "❌ Випадковість повинна бути від 0 до 59 хвилин",
   INVALID_QUESTION_LENGTH: "❌ Питання повинно бути від 3 до 300 символів",

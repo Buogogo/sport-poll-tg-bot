@@ -11,7 +11,7 @@ const FIELD_SCHEMAS: Record<string, ValidationSchema> = {
   targetVotes: {
     type: "number",
     min: 1,
-    max: 9,
+    max: 30,
     message: MESSAGES.INVALID_TARGET_VOTES,
   },
   startHour: {
@@ -47,7 +47,7 @@ const FIELD_SCHEMAS: Record<string, ValidationSchema> = {
   voteCount: {
     type: "number",
     min: 1,
-    max: 20,
+    max: 9,
     message: MESSAGES.INVALID_VOTE_COUNT,
   },
   voteNumber: { type: "number", min: 1, message: MESSAGES.INVALID_VOTE_NUMBER },

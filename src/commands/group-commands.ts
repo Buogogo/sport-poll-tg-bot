@@ -2,8 +2,10 @@ import * as pollService from "../services/poll-service.ts";
 import { MESSAGES } from "../constants/messages.ts";
 import { validateField } from "../utils/validation.ts";
 import type { MyContext } from "../middleware/session.ts";
+import { logger } from "../utils/logger.ts";
 
 export async function handleGroupText(ctx: MyContext) {
+  logger.info(`Received group message: ${ctx || "no text"}`);
   const text = ctx.message?.text || "";
   if (!pollService.isPollActive()) {
     await ctx.reply(MESSAGES.NO_ACTIVE_POLL);

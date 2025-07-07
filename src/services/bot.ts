@@ -16,6 +16,7 @@ import {
 import { onlyTargetGroup } from "../middleware/group.ts";
 import { mainMenu } from "../menus/admin-menu.ts";
 import * as pollService from "./poll-service.ts";
+import { handleRevokeCommand, handleVoteCommand } from "./poll-service.ts";
 
 let botInstance: Bot<MyContext> | null = null;
 let configInstance: Config | null = null;
@@ -48,8 +49,8 @@ function createPollComposer() {
 function createGroupComposer() {
   const groupComposer = new Composer<MyContext>();
   groupComposer.use(onlyTargetGroup());
-  groupComposer.command("plus", (ctx) => pollService.handleVoteCommand(ctx));
-  groupComposer.command("minus", (ctx) => pollService.handleRevokeCommand(ctx));
+  groupComposer.command("+", (ctx) => handleVoteCommand(ctx));
+  groupComposer.command("-", (ctx) => handleRevokeCommand(ctx));
   return groupComposer;
 }
 
@@ -67,8 +68,8 @@ function createAdminComposer() {
 
 function setupCommands(bot: Bot<MyContext>) {
   bot.api.setMyCommands([
-    { command: "plus", description: "Додати голос(и) до опитування" },
-    { command: "minus", description: "Відкликати голос за номером" },
+    { command: "+", description: "Додати голос(и) до опитування" },
+    { command: "-", description: "Відкликати голос за номером" },
   ]);
 }
 

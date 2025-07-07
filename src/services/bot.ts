@@ -30,6 +30,7 @@ export function initializeBot(): { bot: Bot<MyContext>; config: Config } {
   pollService.setBotInstance(botInstance, configInstance);
   botInstance.catch((e) => errorHandler(e));
   botInstance.chatType("private").use(createAdminComposer().middleware());
+  botInstance.chatType("supergroup").use(createGroupComposer().middleware());
   botInstance.chatType("group").use(createGroupComposer().middleware());
   botInstance.use(createPollComposer().middleware());
 

@@ -32,7 +32,7 @@ export function initializeBot(): { bot: Bot<MyContext>; config: Config } {
   botInstance.chatType("supergroup").use(createGroupComposer().middleware());
   botInstance.chatType("group").use(createGroupComposer().middleware());
   botInstance.use(createPollComposer().middleware());
-
+  setupCommands(botInstance);
   return { bot: botInstance, config: configInstance };
 }
 
@@ -63,6 +63,13 @@ function createAdminComposer() {
   adminComposer.command("reset", handleReset);
   adminComposer.command("reboot", handleReboot);
   return adminComposer;
+}
+
+function setupCommands(bot: Bot<MyContext>) {
+  bot.api.setMyCommands([
+    { command: "plus", description: "Додати голос(и) до опитування" },
+    { command: "minus", description: "Відкликати голос за номером" },
+  ]);
 }
 
 export function getBot(): Bot<MyContext> {

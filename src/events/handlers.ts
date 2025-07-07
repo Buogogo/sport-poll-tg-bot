@@ -1,6 +1,7 @@
 import { appEvt } from "./events.ts";
 import {
   createStatusMessage,
+  getPollState,
   isCompleted,
   sendPollCompletionMessage,
   setPollState,
@@ -9,7 +10,6 @@ import {
 } from "../services/poll-service.ts";
 import { logNextPollTime, scheduleNextPoll } from "../services/scheduler.ts";
 import { logger } from "../utils/logger.ts";
-import { PollState } from "../constants/types.ts";
 
 appEvt.attach(async (event) => {
   switch (event.type) {
@@ -39,7 +39,9 @@ appEvt.attach(async (event) => {
     case "poll_completed": {
       await stopPoll();
       await sendPollCompletionMessage();
-      await setPollState({ isTargetReached: true } as PollState);
+      const pollState = await getPollState();
+      pollState.isTargetReached = true;
+      await setPollState(pollState);
       await scheduleNextPoll({ forNextWeek: true });
       break;
     }

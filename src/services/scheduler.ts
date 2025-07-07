@@ -55,38 +55,15 @@ export async function createOrReplaceWeeklyPoll(): Promise<void> {
   logger.info("Poll created.");
 }
 
-export async function initializeScheduler(): Promise<void> {
-  const config = await pollService.getWeeklyConfig();
-  if (!config.enabled) {
-    return;
-  }
-  let shouldPost = false;
-  if (!config.nextPollTime) {
-    const nextTime = await calculateNextPollTime();
-    config.nextPollTime = nextTime.toISOString();
-    await pollService.setWeeklyConfig(config);
-  } else {
-    const now = new Date();
-    const scheduled = new Date(config.nextPollTime);
-    if (now >= scheduled) {
-      shouldPost = true;
-    }
-  }
-  if (shouldPost) {
-    await createOrReplaceWeeklyPoll();
-    const nextTime = await calculateNextPollTime();
-    const config = await pollService.getWeeklyConfig();
-    config.nextPollTime = nextTime.toISOString();
-    await pollService.setWeeklyConfig(config);
-  }
-}
-
 Deno.cron("Check and trigger weekly poll", "*/10 * * * *", async () => {
   const config = await pollService.getWeeklyConfig();
   if (!config.enabled || !config.nextPollTime) return;
   const now = new Date();
   const scheduled = new Date(config.nextPollTime);
-  if (now >= scheduled) {
+  if (
+    now >= scheduled &&
+    now.getUTCMilliseconds() < scheduled.getUTCMilliseconds() + 60 * 60 * 1000
+  ) {
     logger.info("[cron] Time to post the weekly poll!");
     await createOrReplaceWeeklyPoll();
     const nextTime = await calculateNextPollTime(true, scheduled);

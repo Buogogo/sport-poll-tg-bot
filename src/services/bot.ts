@@ -33,7 +33,6 @@ export function initializeBot(): { bot: Bot<MyContext>; config: Config } {
   botInstance.chatType("supergroup").use(createGroupComposer().middleware());
   botInstance.chatType("group").use(createGroupComposer().middleware());
   botInstance.use(createPollComposer().middleware());
-  setupCommands(botInstance);
   return { bot: botInstance, config: configInstance };
 }
 
@@ -49,8 +48,8 @@ function createPollComposer() {
 function createGroupComposer() {
   const groupComposer = new Composer<MyContext>();
   groupComposer.use(onlyTargetGroup());
-  groupComposer.command("+", (ctx) => handleVoteCommand(ctx));
-  groupComposer.command("-", (ctx) => handleRevokeCommand(ctx));
+  groupComposer.command("plus", (ctx) => handleVoteCommand(ctx));
+  groupComposer.command("minus", (ctx) => handleRevokeCommand(ctx));
   return groupComposer;
 }
 
@@ -64,13 +63,6 @@ function createAdminComposer() {
   adminComposer.command("reset", handleReset);
   adminComposer.command("reboot", handleReboot);
   return adminComposer;
-}
-
-function setupCommands(bot: Bot<MyContext>) {
-  bot.api.setMyCommands([
-    { command: "+", description: "Додати голос(и) до опитування" },
-    { command: "-", description: "Відкликати голос за номером" },
-  ]);
 }
 
 export function getBot(): Bot<MyContext> {

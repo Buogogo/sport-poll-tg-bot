@@ -13,6 +13,7 @@ import {
   handleReset,
   handleStart,
 } from "../commands/admin-commands.ts";
+import { handleGroupText } from "../commands/group-commands.ts";
 import { onlyTargetGroup } from "../middleware/group.ts";
 import { mainMenu } from "../menus/admin-menu.ts";
 import * as pollService from "./poll-service.ts";
@@ -47,8 +48,7 @@ function createPollComposer() {
 function createGroupComposer() {
   const groupComposer = new Composer<MyContext>();
   groupComposer.use(onlyTargetGroup());
-  groupComposer.command("plus", (ctx) => pollService.handleVoteCommand(ctx));
-  groupComposer.command("minus", (ctx) => pollService.handleRevokeCommand(ctx));
+  groupComposer.on("message:text", handleGroupText);
   return groupComposer;
 }
 

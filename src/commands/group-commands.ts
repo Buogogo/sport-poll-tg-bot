@@ -1,5 +1,20 @@
+import * as pollService from "../services/poll-service.ts";
 import { MESSAGES } from "../constants/messages.ts";
 import { validateField } from "../utils/validation.ts";
+import type { MyContext } from "../middleware/session.ts";
+
+export async function handleGroupText(ctx: MyContext) {
+  const text = ctx.message?.text || "";
+  if (!pollService.isPollActive()) {
+    await ctx.reply(MESSAGES.NO_ACTIVE_POLL);
+    return;
+  }
+  if (/^\/\+/.test(text)) {
+    await pollService.handleVoteCommand(ctx);
+  } else if (/^\/-/.test(text)) {
+    await pollService.handleRevokeCommand(ctx);
+  }
+}
 
 class ValidationError extends Error {
   constructor(message: string) {
@@ -11,10 +26,10 @@ class ValidationError extends Error {
 export const parseVoteCommand = (
   text: string,
 ): { names?: string[]; count?: number } => {
-  if (!text.startsWith("/plus")) {
+  if (!text.startsWith("/+")) {
     throw new ValidationError(MESSAGES.INVALID_COMMAND_PLUS);
   }
-  const args = text.substring(5).trim();
+  const args = text.substring(2).trim();
   if (!args) return { count: 1 };
 
   const numberMatch = args.match(/^\d+$/);
@@ -39,10 +54,10 @@ export const parseVoteCommand = (
 };
 
 export const parseRevokeCommand = (text: string): number => {
-  if (!text.startsWith("/minus")) {
+  if (!text.startsWith("/-")) {
     throw new ValidationError(MESSAGES.INVALID_COMMAND_MINUS);
   }
-  const args = text.substring(6).trim();
+  const args = text.substring(2).trim();
   if (!args) throw new ValidationError(MESSAGES.VOTE_NUMBER_NOT_PROVIDED);
 
   const numberMatch = args.match(/^\d+$/);

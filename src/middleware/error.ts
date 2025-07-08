@@ -24,6 +24,11 @@ export const errorHandler = async (
       return new Response("User error", { status: 200 });
     } else {
       logger.error("Unhandled bot error", { error });
+      Sentry.init({
+        dsn: Deno.env.get("SENTRY_DSN"),
+        tracesSampleRate: 1.0,
+        environment: Deno.env.get("ENV") || "dev",
+      });
       Sentry.captureException(error);
       return new Response("Bot error", { status: 500 });
     }

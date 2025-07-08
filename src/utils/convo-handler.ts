@@ -92,7 +92,7 @@ export const handleEditMessage: MiddlewareFn<MyContext> = async (
   }
 
   try {
-    const validatedValue = validateField(config.field, text.trim());
+    const validatedValue = validateField(ctx, config.field, text.trim());
     const updateData = { [config.field]: validatedValue };
 
     if (config.config === "instant") {

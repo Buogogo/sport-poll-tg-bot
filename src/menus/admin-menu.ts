@@ -28,7 +28,7 @@ const daySelection = (dayIndex: number) => async (ctx: MyContext) => {
   await pollService.setWeeklyConfig({ dayOfWeek: dayIndex });
   await ctx.answerCallbackQuery(MESSAGES.DAY_SAVED);
   if (ctx.menu) {
-    await ctx.menu.nav("weekly-settings");
+    ctx.menu.nav("weekly-settings");
   }
 };
 

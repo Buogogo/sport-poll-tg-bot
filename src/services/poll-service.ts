@@ -461,10 +461,10 @@ export async function resetPoll(): Promise<void> {
 export async function closePollLogic(): Promise<
   { closed: boolean; message: string }
 > {
-  const pollState = await getPollState();
-  if (!pollState.isTargetReached) {
+  try {
+    await stopPoll();
     return { closed: true, message: MESSAGES.POLL_CLOSED_CB };
-  } else {
+  } catch (_err) {
     return { closed: false, message: MESSAGES.NO_ACTIVE_POLLS_CB };
   }
 }

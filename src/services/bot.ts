@@ -13,10 +13,10 @@ import {
   handleReset,
   handleStart,
 } from "../commands/admin-commands.ts";
+import { handleGroupText } from "../commands/group-commands.ts";
 import { onlyTargetGroup } from "../middleware/group.ts";
 import { mainMenu } from "../menus/admin-menu.ts";
 import * as pollService from "./poll-service.ts";
-import { handleRevokeCommand, handleVoteCommand } from "./poll-service.ts";
 
 let botInstance: Bot<MyContext> | null = null;
 let configInstance: Config | null = null;
@@ -33,6 +33,7 @@ export function initializeBot(): { bot: Bot<MyContext>; config: Config } {
   botInstance.chatType("supergroup").use(createGroupComposer().middleware());
   botInstance.chatType("group").use(createGroupComposer().middleware());
   botInstance.use(createPollComposer().middleware());
+
   return { bot: botInstance, config: configInstance };
 }
 
@@ -48,8 +49,7 @@ function createPollComposer() {
 function createGroupComposer() {
   const groupComposer = new Composer<MyContext>();
   groupComposer.use(onlyTargetGroup());
-  groupComposer.command("+", (ctx) => handleVoteCommand(ctx));
-  groupComposer.command("-", (ctx) => handleRevokeCommand(ctx));
+  groupComposer.on("message:text", handleGroupText);
   return groupComposer;
 }
 

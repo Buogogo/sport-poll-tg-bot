@@ -395,8 +395,7 @@ export async function isPollActive(): Promise<boolean> {
 }
 
 export async function handleVoteCommand(ctx: MyContext): Promise<void> {
-  const args = ctx.match?.trim() || "";
-  const { names, count } = parseVoteCommand(args);
+  const { names, count } = parseVoteCommand(ctx);
   const pollStateBefore = await getPollState();
   const prevVotes =
     pollStateBefore.votes.filter((v) => v.optionId === 0).length;
@@ -416,8 +415,7 @@ export async function handleVoteCommand(ctx: MyContext): Promise<void> {
 }
 
 export async function handleRevokeCommand(ctx: MyContext): Promise<void> {
-  const args = ctx.match?.trim() || "";
-  const voteNumber = parseRevokeCommand(args);
+  const voteNumber = parseRevokeCommand(ctx);
   if (!configInstance) throw new Error("Config not initialized");
   const userId = ctx.from?.id!;
   const isAdmin = configInstance.adminUserIds.includes(userId);

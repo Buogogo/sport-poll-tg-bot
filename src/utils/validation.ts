@@ -1,4 +1,6 @@
 import { MESSAGES } from "../constants/messages.ts";
+import { MyContext } from "../middleware/session.ts";
+import { UserFacingError } from "../constants/types.ts";
 
 interface ValidationSchema {
   type: "string" | "number";
@@ -60,28 +62,32 @@ const FIELD_SCHEMAS: Record<string, ValidationSchema> = {
   groupChatId: { type: "number", message: "Invalid group chat ID" },
 };
 
-export function validateField(field: string, value: string): string | number {
+export function validateField(
+  ctx: MyContext,
+  field: string,
+  value: string,
+): string | number {
   const schema = FIELD_SCHEMAS[field];
   if (!schema) throw new Error(`Unknown field: ${field}`);
 
   if (schema.type === "number") {
     const num = parseInt(value.trim(), 10);
-    if (isNaN(num)) throw new Error(schema.message);
+    if (isNaN(num)) throw new UserFacingError(ctx, schema.message);
     if (schema.min !== undefined && num < schema.min) {
-      throw new Error(schema.message);
+      throw new UserFacingError(ctx, schema.message);
     }
     if (schema.max !== undefined && num > schema.max) {
-      throw new Error(schema.message);
+      throw new UserFacingError(ctx, schema.message);
     }
     return num;
   }
 
   const trimmed = value.trim();
   if (schema.min !== undefined && trimmed.length < schema.min) {
-    throw new Error(schema.message);
+    throw new UserFacingError(ctx, schema.message);
   }
   if (schema.max !== undefined && trimmed.length > schema.max) {
-    throw new Error(schema.message);
+    throw new UserFacingError(ctx, schema.message);
   }
   return trimmed;
 }

@@ -33,17 +33,6 @@ export function initializeBot(): { bot: Bot<MyContext>; config: Config } {
   botInstance.chatType("supergroup").use(createGroupComposer().middleware());
   botInstance.chatType("group").use(createGroupComposer().middleware());
   botInstance.use(createPollComposer().middleware());
-  botInstance.api.setMyCommands([
-    {
-      command: "plus",
-      description:
-        "без нічого або після пробілу кількість людей чи імена через кому, щоб додати",
-    },
-    {
-      command: "minus",
-      description: "і після пробілу номер зі списку, щоб відкликати",
-    },
-  ]);
   return { bot: botInstance, config: configInstance };
 }
 
@@ -59,8 +48,8 @@ function createPollComposer() {
 function createGroupComposer() {
   const groupComposer = new Composer<MyContext>();
   groupComposer.use(onlyTargetGroup());
-  groupComposer.command("plus", (ctx) => handleVoteCommand(ctx));
-  groupComposer.command("minus", (ctx) => handleRevokeCommand(ctx));
+  groupComposer.command("+", (ctx) => handleVoteCommand(ctx));
+  groupComposer.command("-", (ctx) => handleRevokeCommand(ctx));
   return groupComposer;
 }
 

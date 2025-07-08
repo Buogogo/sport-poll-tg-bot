@@ -8,8 +8,9 @@ import { MESSAGES } from "../constants/messages.ts";
 import type { MyContext } from "../middleware/session.ts";
 
 export async function handleStart(ctx: MyContext) {
+  const { reply } = ctx;
   const session = getAdminSession(ctx);
-  const message = await ctx.reply(MESSAGES.MAIN_MENU_TITLE, {
+  const message = await reply(MESSAGES.MAIN_MENU_TITLE, {
     reply_markup: mainMenu,
     parse_mode: "HTML",
   });
@@ -17,11 +18,13 @@ export async function handleStart(ctx: MyContext) {
 }
 
 export async function handleReset(ctx: MyContext) {
+  const { reply } = ctx;
   resetSession(ctx);
-  await ctx.reply(MESSAGES.ADMIN_INTERFACE_RESET, { reply_markup: mainMenu });
+  await reply(MESSAGES.ADMIN_INTERFACE_RESET, { reply_markup: mainMenu });
 }
 
 export async function handleReboot(ctx: MyContext) {
+  const { reply } = ctx;
   await clearAllPersistentData();
-  await ctx.reply(MESSAGES.REBOOT_SUCCESS, { parse_mode: "HTML" });
+  await reply(MESSAGES.REBOOT_SUCCESS, { parse_mode: "HTML" });
 }

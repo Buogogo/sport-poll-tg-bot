@@ -463,6 +463,12 @@ export async function closePollLogic(): Promise<
 > {
   try {
     await stopPoll();
+    const pollState = await getPollState();
+    if (!pollState.isTargetReached) {
+      pollState.isTargetReached = true;
+      await setPollState(pollState);
+    }
+    await updateStatusMessage();
     return { closed: true, message: MESSAGES.POLL_CLOSED_CB };
   } catch (_err) {
     return { closed: false, message: MESSAGES.NO_ACTIVE_POLLS_CB };

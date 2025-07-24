@@ -25,6 +25,19 @@ let configInstance: {
   targetGroupChatId: number;
 } | null = null;
 
+async function getPlayerNames(userIds: number[]): Promise<Map<number, string>> {
+  const kv = await Deno.openKv();
+  const keys = userIds.map((id) => ["player", id]);
+  const results = await kv.getMany<string[]>(keys);
+  const nameMap = new Map<number, string>();
+  for (let i = 0; i < userIds.length; i++) {
+    if (results[i].value) {
+      nameMap.set(userIds[i], results[i].value!);
+    }
+  }
+  return nameMap;
+}
+
 export function setBotInstance(
   bot: Bot<MyContext>,
   config: {
@@ -104,14 +117,21 @@ export async function buildStatusMessage(): Promise<string> {
     status += MESSAGES.STATUS_THANKS;
   }
   const votes = pollState.votes.filter((v) => v.optionId === 0);
-  status += MESSAGES.STATUS_VOTES_LIST +
-    votes.map((v, i) =>
-      MESSAGES.STATUS_VOTE_ITEM(
-        i + 1,
-        escapeHtml(v.userName ?? MESSAGES.ANONYMOUS_NAME),
-        v.requesterName ? escapeHtml(v.requesterName) : undefined,
-      )
-    ).join("\n") + (votes.length ? "\n" : "");
+  const userIds = votes.filter((v) => v.userId).map((v) => v.userId!);
+  const playerNames = await getPlayerNames(userIds);
+  const voteItems = votes.map((v, i) => {
+    let displayName = v.userName ?? MESSAGES.ANONYMOUS_NAME;
+    if (v.userId && playerNames.has(v.userId)) {
+      displayName = playerNames.get(v.userId)!;
+    }
+    return MESSAGES.STATUS_VOTE_ITEM(
+      i + 1,
+      escapeHtml(displayName),
+      v.requesterName ? escapeHtml(v.requesterName) : undefined,
+    );
+  });
+  status += MESSAGES.STATUS_VOTES_LIST + voteItems.join("\n") +
+    (votes.length ? "\n" : "");
   return status;
 }
 
@@ -292,7 +312,6 @@ export async function addVotesBulk(
   if (votes.length > remaining) {
     return MESSAGES.TOO_MANY_VOTES(votes.length, remaining);
   }
-  // Add all votes at once
   pollState.votes.push(...votes);
   await setPollState(pollState);
   appEvt.post({
@@ -346,10 +365,14 @@ export async function revokeVoteByNumber(
     userName: vote.requesterName,
     voteType: "external",
   });
-  return MESSAGES.VOTE_REVOKED_SUCCESS(
-    voteNumber,
-    vote.userName ?? MESSAGES.ANONYMOUS_NAME,
-  );
+  let displayName = vote.userName ?? MESSAGES.ANONYMOUS_NAME;
+  if (vote.userId) {
+    const playerNames = await getPlayerNames([vote.userId]);
+    if (playerNames.has(vote.userId)) {
+      displayName = playerNames.get(vote.userId)!;
+    }
+  }
+  return MESSAGES.VOTE_REVOKED_SUCCESS(voteNumber, displayName);
 }
 
 export async function revokeDirectVoteByUserId(

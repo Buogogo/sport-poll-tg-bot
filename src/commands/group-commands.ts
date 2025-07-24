@@ -22,7 +22,7 @@ export const parseVoteCommand = (
   ctx: MyContext,
 ): { names?: string[]; count?: number } => {
   const text = ctx.message?.text || "";
-  const args = text.substring(2).trim();
+  const args = text.substring(1).trim();
   if (!args) return { count: 1 };
 
   const numberMatch = args.match(/^\d+$/);
@@ -51,7 +51,7 @@ export const parseVoteCommand = (
 export const parseRevokeCommand = (ctx: MyContext): number => {
   const { message } = ctx;
   const text = message?.text || "";
-  const args = text.substring(2).trim();
+  const args = text.substring(1).trim();
   if (!args) throw new UserFacingError(ctx, MESSAGES.VOTE_NUMBER_NOT_PROVIDED);
 
   const numberMatch = args.match(/^\d+$/);

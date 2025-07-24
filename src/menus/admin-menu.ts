@@ -14,6 +14,15 @@ const confirmPoll = async (ctx: MyContext) => {
   await ctx.answerCallbackQuery(result.message);
 };
 
+const updateStatus = async (ctx: MyContext) => {
+  try {
+    await pollService.updateStatusMessage();
+    await ctx.answerCallbackQuery(MESSAGES.STATUS_UPDATED);
+  } catch (_error) {
+    await ctx.answerCallbackQuery("❌ Помилка оновлення статусу");
+  }
+};
+
 const toggleWeeklyStatus = async (ctx: MyContext) => {
   const config = await pollService.getWeeklyConfig();
   const newEnabled = !config.enabled;
@@ -38,6 +47,7 @@ export const mainMenu = new Menu<MyContext>("main")
     (ctx: MyContext) => ctx.menu.nav("poll-create"),
   ).row()
   .text(MESSAGES.CLOSE_POLL, closePoll).row()
+  .text(MESSAGES.UPDATE_STATUS, updateStatus).row()
   .text(
     MESSAGES.WEEKLY_SETTINGS,
     (ctx: MyContext) => ctx.menu.nav("weekly-settings"),

@@ -277,6 +277,10 @@ export async function addVotesBulk(
   }
   const currentVotes = pollState.votes.filter((v) => v.optionId === 0).length;
   const remaining = pollState.targetVotes - currentVotes;
+  const requesterPlayerName = ctx.from?.id
+    ? (await getPlayerNames([ctx.from.id])).get(ctx.from.id)
+    : undefined;
+  const requesterName = requesterPlayerName || ctx.from?.first_name;
   let votes: Array<Vote> = [];
   if (names && names.length) {
     votes = names.map((name) =>
@@ -285,7 +289,7 @@ export async function addVotesBulk(
         undefined,
         name || MESSAGES.ANONYMOUS_NAME,
         ctx.from?.id,
-        ctx.from?.first_name,
+        requesterName,
       )
     );
   } else if (count) {
@@ -295,7 +299,7 @@ export async function addVotesBulk(
         undefined,
         MESSAGES.ANONYMOUS_NAME,
         ctx.from?.id,
-        ctx.from?.first_name,
+        requesterName,
       )
     );
   } else {
@@ -305,7 +309,7 @@ export async function addVotesBulk(
         undefined,
         MESSAGES.ANONYMOUS_NAME,
         ctx.from?.id,
-        ctx.from?.first_name,
+        requesterName,
       ),
     ];
   }
@@ -318,7 +322,7 @@ export async function addVotesBulk(
     type: "vote_added",
     pollState,
     userId: ctx.from?.id,
-    userName: ctx.from?.first_name,
+    userName: requesterName,
     voteType: "external",
   });
 }

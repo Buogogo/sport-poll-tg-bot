@@ -16,6 +16,7 @@ export const MESSAGES = {
   CREATE_POLL: "📊 Створити опитування",
   CLOSE_POLL: "❌ Закрити опитування",
   WEEKLY_SETTINGS: "⚙️ Тижневі налаштування",
+  UPDATE_STATUS: "🔄 Оновити статус",
   ENTER_FIELD_PROMPT: (fieldName: string) => `✏️ Введіть ${fieldName}:`,
 
   // Logging/debug/info
@@ -61,6 +62,7 @@ export const MESSAGES = {
   VOTE_REVOKED: "✅ Голос скасовано",
   REFRESHED: "♻️ Оновлено!",
   DATA_UP_TO_DATE: "✅ Дані актуальні",
+  STATUS_UPDATED: "✅ Статус оновлено!",
 
   // Dynamic messages
   TOO_MANY_VOTES: (count: number, remaining: number) =>

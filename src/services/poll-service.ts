@@ -28,22 +28,41 @@ let configInstance: {
 async function getPlayerNames(userIds: number[]): Promise<Map<number, string>> {
   const kv = await Deno.openKv();
   const keys = userIds.map((id) => ["player", id]);
+  console.log("Debug: Fetching player names for user IDs:", userIds);
+  console.log("Debug: KV keys to fetch:", keys);
   const results = await kv.getMany<string[]>(keys);
+  console.log("Debug: KV fetch results:", results.map((r, i) => ({ 
+    key: keys[i], 
+    value: r.value, 
+    versionstamp: r.versionstamp 
+  })));
   const nameMap = new Map<number, string>();
   for (let i = 0; i < userIds.length; i++) {
     if (results[i].value) {
       nameMap.set(userIds[i], results[i].value!);
+      console.log(`Debug: Mapped user ${userIds[i]} to name "${results[i].value}"`);
+    } else {
+      console.log(`Debug: No player name found for user ${userIds[i]}`);
     }
   }
+  await kv.close();
+  ,
+
+  console.log("Debug: Final name map:", Object.fromEntries(nameMap));
   return nameMap;
 }
 
-export function setBotInstance(
+export functio
+    n setBotInstance(
+   ,
+  
   bot: Bot<MyContext>,
   config: {
     botToken: string;
     adminUserIds: number[];
-    targetGroupChatId: number;
+    targetGroupCha
+        tId: number;,
+      
   },
 ) {
   botInstance = bot;
@@ -536,12 +555,12 @@ export async function stopPoll(): Promise<void> {
 
 export async function updateStatusMessage(): Promise<void> {
   const pollState = await getPollState();
-  const { statusMessageId } = pollState;
-  if (!statusMessageId) return;
+  const { statusMessageId: _statusMessageId } = pollState;
+  if (!_statusMessageId) return;
   const statusText = await buildStatusMessage();
   await botInstance!.api.editMessageText(
     configInstance!.targetGroupChatId,
-    statusMessageId,
+    _statusMessageId,
     statusText,
     { parse_mode: "HTML" },
   );

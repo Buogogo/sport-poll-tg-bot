@@ -18,7 +18,8 @@ const updateStatus = async (ctx: MyContext) => {
   try {
     await pollService.updateStatusMessage();
     await ctx.answerCallbackQuery(MESSAGES.STATUS_UPDATED);
-  } catch (_error) {
+  } catch (error) {
+    console.error("Error updating status:", error);
     await ctx.answerCallbackQuery("❌ Помилка оновлення статусу");
   }
 };

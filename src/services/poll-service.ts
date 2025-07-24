@@ -28,55 +28,23 @@ let configInstance: {
 async function getPlayerNames(userIds: number[]): Promise<Map<number, string>> {
   const kv = await Deno.openKv();
   const keys = userIds.map((id) => ["player", id]);
-  console.log("Debug: Fetching player names for user IDs:", userIds);
-  console.log("Debug: KV keys to fetch:", keys);
   const results = await kv.getMany<string[]>(keys);
-  console.log("Debug: KV fetch results:", results.map((r, i) => ({ 
-    key: keys[i], 
-    value: r.value, 
-    versionstamp: r.versionstamp 
-  })));
   const nameMap = new Map<number, string>();
   for (let i = 0; i < userIds.length; i++) {
     if (results[i].value) {
       nameMap.set(userIds[i], results[i].value!);
-      console.log(`Debug: Mapped user ${userIds[i]} to name "${results[i].value}"`);
-    } else {
-      console.log(`Debug: No player name found for user ${userIds[i]}`);
     }
   }
   await kv.close();
-  ,
-
-  ,
-
-  ,
-
-  console.log(
-    "Debug: Final name ma
-   p:", Object.fromEntries(nameMap));,
-  
   return nameMap;
 }
-    
-   ,
-  
-        ,
-      
 
-export functio
-    n setBotInstance(
-   ,
-  
-        ,
-      
+export function setBotInstance(
   bot: Bot<MyContext>,
   config: {
     botToken: string;
     adminUserIds: number[];
-    targetGroupCha
-        tId: number;,
-      
+    targetGroupChatId: number;
   },
 ) {
   botInstance = bot;

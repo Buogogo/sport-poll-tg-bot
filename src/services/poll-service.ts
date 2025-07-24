@@ -48,14 +48,28 @@ async function getPlayerNames(userIds: number[]): Promise<Map<number, string>> {
   await kv.close();
   ,
 
-  console.log("Debug: Final name map:", Object.fromEntries(nameMap));
+  ,
+
+  ,
+
+  console.log(
+    "Debug: Final name ma
+   p:", Object.fromEntries(nameMap));,
+  
   return nameMap;
 }
+    
+   ,
+  
+        ,
+      
 
 export functio
     n setBotInstance(
    ,
   
+        ,
+      
   bot: Bot<MyContext>,
   config: {
     botToken: string;

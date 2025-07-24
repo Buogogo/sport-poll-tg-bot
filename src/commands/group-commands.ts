@@ -11,9 +11,9 @@ export async function handleGroupText(ctx: MyContext) {
     await ctx.reply(MESSAGES.NO_ACTIVE_POLL);
     return;
   }
-  if (/^\/\+/.test(text)) {
+  if (/^\+/.test(text)) {
     await pollService.handleVoteCommand(ctx);
-  } else if (/^\/\-/.test(text)) {
+  } else if (/^\-/.test(text)) {
     await pollService.handleRevokeCommand(ctx);
   }
 }

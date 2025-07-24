@@ -27,12 +27,11 @@ let configInstance: {
 
 async function getPlayerNames(userIds: number[]): Promise<Map<number, string>> {
   const kv = await Deno.openKv();
-  const keys = userIds.map((id) => ["player", id]);
-  const results = await kv.getMany<string[]>(keys);
   const nameMap = new Map<number, string>();
-  for (let i = 0; i < userIds.length; i++) {
-    if (results[i].value) {
-      nameMap.set(userIds[i], results[i].value!);
+  for (const userId of userIds) {
+    const result = await kv.get<string>(["player", userId]);
+    if (result.value) {
+      nameMap.set(userId, result.value);
     }
   }
   await kv.close();

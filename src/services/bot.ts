@@ -1,18 +1,10 @@
 import { Bot, Composer } from "grammy";
-import {
-  MyContext,
-  routeStateRouter,
-  withSession,
-} from "../middleware/session.ts";
+import { MyContext, withSession, editStateRouter } from "../middleware/session.ts";
 import { onlyAdmin } from "../middleware/admin.ts";
 import { errorHandler } from "../middleware/error.ts";
 import { Config } from "../constants/types.ts";
 import { loadEnvs } from "../utils/env-utils.ts";
-import {
-  handleReboot,
-  handleReset,
-  handleStart,
-} from "../commands/admin-commands.ts";
+import { handleReboot, handleReset, handleStart } from "../commands/admin-commands.ts";
 import { handleGroupText } from "../commands/group-commands.ts";
 import { onlyTargetGroup } from "../middleware/group.ts";
 import { mainMenu } from "../menus/admin-menu.ts";
@@ -39,10 +31,7 @@ export function initializeBot(): { bot: Bot<MyContext>; config: Config } {
 
 function createPollComposer() {
   const pollComposer = new Composer<MyContext>();
-  pollComposer.on(
-    "poll_answer",
-    (ctx) => pollService.handleVote(ctx),
-  );
+  pollComposer.on("poll_answer", (ctx) => pollService.handleVote(ctx));
   return pollComposer;
 }
 
@@ -58,7 +47,7 @@ function createAdminComposer() {
   adminComposer.use(onlyAdmin());
   adminComposer.use(withSession());
   adminComposer.use(mainMenu);
-  adminComposer.use(routeStateRouter);
+  adminComposer.use(editStateRouter);
   adminComposer.command("start", handleStart);
   adminComposer.command("reset", handleReset);
   adminComposer.command("reboot", handleReboot);

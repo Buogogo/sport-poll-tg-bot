@@ -7,7 +7,6 @@ export interface Config {
   targetGroupChatId: number;
 }
 
-// Vote-related utility types
 export type VoteInfo = {
   type: "direct";
   number: number;
@@ -39,7 +38,7 @@ export interface WeeklyConfig {
   positiveOption: string;
   negativeOption: string;
   targetVotes: number;
-  dayOfWeek: number; // 1 = Monday, 7 = Sunday
+  dayOfWeek: number;
   startHour: number;
   randomWindowMinutes: number;
   nextPollTime?: string | null;
@@ -52,31 +51,12 @@ export interface InstantPollConfig {
   targetVotes: number;
 }
 
-export interface AdminSession {
-  chatId: number;
-  lastMenuMessageId?: number;
-  confirmationMessages?: number[];
-  // Legacy properties for compatibility with old admin.ts
-  editTarget?: string;
-  editContext?: "poll" | "weekly";
-  pendingValue?: string;
-  messagesToClear?: number[];
-  pollData?: {
-    question: string;
-    positiveOption: string;
-    negativeOption: string;
-    targetVotes: number;
-  };
-}
-
-// Poll event types
 export type PollEvent =
   | "vote_added"
   | "vote_revoked"
   | "poll_completed"
   | "poll_started";
 
-// Custom error types for specific error handling
 export class UserFacingError extends Error {
   ctx: Context;
   constructor(ctx: Context, message: string) {

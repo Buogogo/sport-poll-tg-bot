@@ -1,30 +1,24 @@
-import {
-  clearAllPersistentData,
-  getAdminSession,
-  resetSession,
-} from "../middleware/session.ts";
+import { clearAllPersistentData, clearSession, getSession, saveSession } from "../middleware/session.ts";
 import { mainMenu } from "../menus/admin-menu.ts";
 import { MESSAGES } from "../constants/messages.ts";
 import type { MyContext } from "../middleware/session.ts";
 
 export async function handleStart(ctx: MyContext) {
-  const { reply } = ctx;
-  const session = getAdminSession(ctx);
-  const message = await reply(MESSAGES.MAIN_MENU_TITLE, {
+  const message = await ctx.reply(MESSAGES.MAIN_MENU_TITLE, {
     reply_markup: mainMenu,
     parse_mode: "HTML",
   });
+  const session = await getSession(ctx);
   session.lastMenuMessageId = message.message_id;
+  await saveSession(ctx, session);
 }
 
 export async function handleReset(ctx: MyContext) {
-  const { reply } = ctx;
-  resetSession(ctx);
-  await reply(MESSAGES.ADMIN_INTERFACE_RESET, { reply_markup: mainMenu });
+  await clearSession(ctx);
+  await ctx.reply(MESSAGES.ADMIN_INTERFACE_RESET, { reply_markup: mainMenu });
 }
 
 export async function handleReboot(ctx: MyContext) {
-  const { reply } = ctx;
   await clearAllPersistentData();
-  await reply(MESSAGES.REBOOT_SUCCESS, { parse_mode: "HTML" });
+  await ctx.reply(MESSAGES.REBOOT_SUCCESS, { parse_mode: "HTML" });
 }

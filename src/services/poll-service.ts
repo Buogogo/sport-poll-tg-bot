@@ -273,7 +273,7 @@ export async function addVotesBulk(
 ): Promise<string | void> {
   const pollState = await getPollState();
   if (pollState.isTargetReached && !isAdmin(ctx.from!.id)) {
-    throw new UserFacingError(ctx, MESSAGES.NO_ACTIVE_POLL);
+    throw new UserFacingError(ctx, MESSAGES.TARGET_ALREADY_REACHED);
   }
   const currentVotes = pollState.votes.filter((v) => v.optionId === 0).length;
   const remaining = pollState.targetVotes - currentVotes;
@@ -334,9 +334,6 @@ export async function revokeVoteByNumber(
   ctx: MyContext,
 ): Promise<string> {
   const pollState = await getPollState();
-  if (pollState.isTargetReached && !isAdmin) {
-    throw new UserFacingError(ctx, MESSAGES.NO_ACTIVE_POLL);
-  }
   if (voteNumber < 1) {
     throw new UserFacingError(ctx, MESSAGES.POLL_VOTE_NUMBER_TOO_LOW);
   }
@@ -344,12 +341,6 @@ export async function revokeVoteByNumber(
   const vote = votes[voteNumber - 1];
   if (!vote) {
     throw new UserFacingError(ctx, MESSAGES.VOTE_NOT_FOUND(voteNumber));
-  }
-  if (vote.userId && !isAdmin) {
-    throw new UserFacingError(
-      ctx,
-      MESSAGES.DIRECT_VOTE_REVOKE_ERROR,
-    );
   }
   if (vote.requesterId !== userId && !isAdmin) {
     throw new UserFacingError(

@@ -1,10 +1,18 @@
 import { Bot, Composer } from "grammy";
-import { MyContext, withSession, editStateRouter } from "../middleware/session.ts";
+import {
+  editStateRouter,
+  MyContext,
+  withSession,
+} from "../middleware/session.ts";
 import { onlyAdmin } from "../middleware/admin.ts";
 import { errorHandler } from "../middleware/error.ts";
 import { Config } from "../constants/types.ts";
 import { loadEnvs } from "../utils/env-utils.ts";
-import { handleReboot, handleReset, handleStart } from "../commands/admin-commands.ts";
+import {
+  handleReboot,
+  handleReset,
+  handleStart,
+} from "../commands/admin-commands.ts";
 import { handleGroupText } from "../commands/group-commands.ts";
 import { onlyTargetGroup } from "../middleware/group.ts";
 import { mainMenu } from "../menus/admin-menu.ts";
@@ -20,6 +28,17 @@ export function initializeBot(): { bot: Bot<MyContext>; config: Config } {
   configInstance = loadEnvs();
   botInstance = new Bot<MyContext>(configInstance.botToken);
   pollService.setBotInstance(botInstance, configInstance);
+
+  // Initialize weekly scheduling if enabled
+  (async () => {
+    const config = await pollService.getWeeklyConfig();
+    if (config.enabled && !config.nextPollTime) {
+      console.log("Initializing weekly poll scheduling on startup");
+      const { scheduleNextPoll } = await import("../services/scheduler.ts");
+      await scheduleNextPoll();
+    }
+  })();
+
   botInstance.catch((e) => errorHandler(e));
   botInstance.chatType("private").use(createAdminComposer().middleware());
   botInstance.chatType("supergroup").use(createGroupComposer().middleware());

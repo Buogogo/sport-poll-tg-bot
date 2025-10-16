@@ -9,23 +9,35 @@ import { handleGroupText } from "../commands/group-commands.ts";
 import { onlyTargetGroup } from "../middleware/group.ts";
 import { mainMenu } from "../menus/admin-menu.ts";
 import * as pollService from "./poll-service.ts";
+import { logger } from "../utils/logger.ts";
 
 let botInstance: Bot<MyContext> | null = null;
 let configInstance: Config | null = null;
 
 export function initializeBot(): { bot: Bot<MyContext>; config: Config } {
   if (botInstance && configInstance) {
+    logger.info("Returning existing bot instance");
     return { bot: botInstance, config: configInstance };
   }
+  
+  logger.info("Initializing new bot instance");
   configInstance = loadEnvs();
+  logger.info("Config loaded", { 
+    adminUserIds: configInstance.adminUserIds,
+    targetGroupChatId: configInstance.targetGroupChatId
+  });
+  
   botInstance = new Bot<MyContext>(configInstance.botToken);
   pollService.setBotInstance(botInstance, configInstance);
   botInstance.catch((e) => errorHandler(e));
+  
+  logger.info("Setting up bot handlers");
   botInstance.chatType("private").use(createAdminComposer().middleware());
   botInstance.chatType("supergroup").use(createGroupComposer().middleware());
   botInstance.chatType("group").use(createGroupComposer().middleware());
   botInstance.use(createPollComposer().middleware());
-
+  
+  logger.info("Bot initialization complete");
   return { bot: botInstance, config: configInstance };
 }
 

@@ -67,17 +67,19 @@ export async function getWeeklyConfig(): Promise<WeeklyConfig> {
 export async function setWeeklyConfig(
   updates: Partial<WeeklyConfig>,
 ): Promise<void> {
-  const config = await persistence.getWeeklyConfig();
-  Object.assign(config, updates);
+  const oldConfig = await persistence.getWeeklyConfig();
+  const config = { ...oldConfig, ...updates };
   await persistence.setWeeklyConfig(config);
-  const shouldReschedule = typeof updates.enabled !== "undefined" ||
-    (
-      config.enabled &&
-      (typeof updates.startHour !== "undefined" ||
-        typeof updates.randomWindowMinutes !== "undefined" ||
-        typeof updates.dayOfWeek !== "undefined")
-    );
-  if (shouldReschedule || Object.keys(updates).length > 0) {
+  
+  // Only reschedule if scheduling-related parameters changed
+  const wasJustEnabled = typeof updates.enabled !== "undefined" && updates.enabled && !oldConfig.enabled;
+  const schedulingParamsChanged = config.enabled && (
+    typeof updates.startHour !== "undefined" ||
+    typeof updates.randomWindowMinutes !== "undefined" ||
+    typeof updates.dayOfWeek !== "undefined"
+  );
+  
+  if (wasJustEnabled || schedulingParamsChanged) {
     appEvt.post({ type: "weekly_schedule_config_changed", config });
   }
 }

@@ -67,9 +67,7 @@ Deno.cron("Check and trigger weekly poll", "*/10 * * * *", async () => {
     logger.info("[cron] Time to post the weekly poll!");
     await createOrReplaceWeeklyPoll();
     const nextTime = await calculateNextPollTime(true, scheduled);
-    const config = await pollService.getWeeklyConfig();
-    config.nextPollTime = nextTime.toISOString();
-    await pollService.setWeeklyConfig(config);
+    await pollService.setWeeklyConfig({ nextPollTime: nextTime.toISOString() });
   }
 });
 

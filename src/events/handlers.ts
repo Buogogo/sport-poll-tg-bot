@@ -38,11 +38,10 @@ appEvt.attach(async (event) => {
     }
     case "poll_completed": {
       await stopPoll();
-      await sendPollCompletionMessage();
       const pollState = await getPollState();
       pollState.isTargetReached = true;
       await setPollState(pollState);
-      await scheduleNextPoll({ forNextWeek: true });
+      // Removed automatic scheduling of next poll and completion message
       break;
     }
     case "weekly_schedule_config_changed": {
